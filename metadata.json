@@ -1,0 +1,5 @@
+{
+  "name": "SpiroGraph",
+  "description": "An interactive Spirograph visualization tool. Create mesmerizing geometric patterns and watch the gears move in real-time.",
+  "requestFramePermissions": []
+}
