@@ -580,7 +580,11 @@ const App: React.FC = () => {
     : 'text-slate-200 group-hover:text-slate-500';
 
   const logoBg = theme === 'dark' ? 'white' : 'black';
-  const settingsBtnClass = theme === 'dark' ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100';
+  
+  // Updated settingsBtnClass to match web browser theme colors exactly
+  const settingsBtnClass = theme === 'dark' 
+    ? 'text-slate-500 hover:text-slate-300 hover:bg-slate-800' 
+    : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100';
   
   // Grey Button Class (Control Panel)
   const greyBtnClass = theme === 'dark'
@@ -651,7 +655,7 @@ const App: React.FC = () => {
                 </div>
             </a>
             
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
                 <button 
                 onClick={handleMobileRandom} 
                 className={`p-2 rounded-lg transition-colors ${settingsBtnClass}`}
