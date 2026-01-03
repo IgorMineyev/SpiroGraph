@@ -165,6 +165,17 @@ const calculateOptimalScale = (cfg: SpiroConfig, width: number, height: number):
     return Math.max(0.1, Math.min(5, scale));
 };
 
+// Helper for responsive line width calculation
+const calculateResponsiveLineWidth = (k: number, width: number, height: number) => {
+    const minDim = Math.min(width, height);
+    // Visual thickness ~ proportional to screen size
+    // For 400px screen (phone) -> ~1.2-1.5px
+    // For 1080px screen (desktop) -> ~2.7-3.0px
+    const targetVisualWidth = Math.max(1.2, minDim / 400); 
+    const computedLineWidth = targetVisualWidth / (k || 1);
+    return Math.max(0.1, Math.min(30, computedLineWidth));
+};
+
 const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -206,11 +217,16 @@ const App: React.FC = () => {
     isInfinityModeRef.current = isInfinityMode;
   }, [isInfinityMode]);
 
-  // Initialize scale on mount
+  // Initialize scale and line width on mount
   useEffect(() => {
     const width = window.innerWidth;
     const height = window.innerHeight;
     const k = calculateOptimalScale(config, width, height);
+    
+    // Set initial responsive line width
+    const lw = calculateResponsiveLineWidth(k, width, height);
+    setConfig(prev => ({ ...prev, lineWidth: lw }));
+
     setViewTransform(prev => ({ ...prev, k }));
   }, []);
 
@@ -364,12 +380,8 @@ const App: React.FC = () => {
     // Calculate new scale to fit the screen
     const k = calculateOptimalScale(config, width, height);
     
-    // Calculate proportional line thickness
-    const minDim = Math.min(width, height);
-    const targetVisualWidth = Math.max(3.0, minDim / 300);
-    
-    let computedLineWidth = targetVisualWidth / (k || 1);
-    computedLineWidth = Math.max(0.1, Math.min(30, computedLineWidth));
+    // Calculate proportional line thickness using helper
+    const computedLineWidth = calculateResponsiveLineWidth(k, width, height);
     
     // Update config with new visual properties, preserving the rest
     setConfig(prev => ({
@@ -432,12 +444,8 @@ const App: React.FC = () => {
     const k = calculateOptimalScale(newConfig, width, height);
     setViewTransform({ x: 0, y: 0, k });
 
-    // Calculate line width to ensure constant VISUAL thickness (approx 3px).
-    const minDim = Math.min(width, height);
-    const targetVisualWidth = Math.max(3.0, minDim / 300);
-    
-    let computedLineWidth = targetVisualWidth / (k || 1);
-    computedLineWidth = Math.max(0.1, Math.min(30, computedLineWidth));
+    // Calculate line width using helper
+    const computedLineWidth = calculateResponsiveLineWidth(k, width, height);
     
     newConfig.lineWidth = computedLineWidth;
 
@@ -557,18 +565,33 @@ const App: React.FC = () => {
     }
   };
 
-  // Called by Controls when "Random" is clicked
+  // Called by Controls when "Random" is clicked (Desktop/Settings drawer)
   const handleAutoZoom = useCallback((newConfig: SpiroConfig) => {
-    const k = calculateOptimalScale(newConfig, window.innerWidth, window.innerHeight);
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const k = calculateOptimalScale(newConfig, width, height);
+    
+    // Override line width for desktop random action as well
+    const lw = calculateResponsiveLineWidth(k, width, height);
+    setConfig(c => ({ ...newConfig, lineWidth: lw }));
+
     setViewTransform({ x: 0, y: 0, k });
   }, []);
 
   const handleMobileRandom = () => {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
     const newConfig = generateRandomConfig(theme);
+    
+    const k = calculateOptimalScale(newConfig, width, height);
+    
+    // Override line width for mobile random action
+    const lw = calculateResponsiveLineWidth(k, width, height);
+    newConfig.lineWidth = lw;
+
     setConfig(newConfig);
     setShouldClear(true);
     setIsPlaying(true);
-    const k = calculateOptimalScale(newConfig, window.innerWidth, window.innerHeight);
     setViewTransform({ x: 0, y: 0, k });
   };
 
