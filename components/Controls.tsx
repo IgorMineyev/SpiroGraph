@@ -289,7 +289,7 @@ export const Controls: React.FC<ControlsProps> = ({
   const logoNameTextClass =
     theme === 'dark'
       ? 'text-slate-400 group-hover:text-slate-200'
-      : 'text-slate-500 group-hover:text-slate-600';
+      : 'text-slate-300 group-hover:text-slate-500';
 
   // Tiled background for the settings sidebar:
   // - light mode: bg.jpg
