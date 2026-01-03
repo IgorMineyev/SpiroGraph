@@ -3,7 +3,7 @@ import { Controls } from './components/Controls';
 import { SpirographRenderer } from './components/SpirographRenderer';
 import { SpiroConfig, Theme } from './types';
 import { DEFAULT_CONFIG, PRESET_COLORS } from './constants';
-import { Settings, X, Maximize, Minimize, ZoomIn, ZoomOut, Shuffle, Download, Infinity as InfinityIcon, Clock, FileText, Image as ImageIcon, Pause, Play, Trash2, Sparkles, Sun, Moon } from 'lucide-react';
+import { Settings, X, Maximize, Minimize, ZoomIn, ZoomOut, Shuffle, Download, Infinity as InfinityIcon, Clock, FileText, Image as ImageIcon, Pause, Play, Trash2, Sparkles, Sun, Moon, Monitor } from 'lucide-react';
 
 // Custom Crossed Infinity Icon
 const InfinityOff = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
@@ -123,15 +123,20 @@ const App: React.FC = () => {
     setViewTransform(prev => ({ ...prev, k }));
   }, []);
 
-  // Sync body class with the current theme and screensaver state to avoid white background on mobile
+  // Sync body and document class with the current theme and screensaver state to ensure black background on mobile
   useEffect(() => {
     const body = document.body;
+    const html = document.documentElement;
     if (isScreensaver || theme === 'dark') {
       body.classList.add('bg-slate-950');
       body.classList.remove('bg-white');
+      html.classList.add('bg-slate-950');
+      html.classList.remove('bg-white');
     } else {
       body.classList.add('bg-white');
       body.classList.remove('bg-slate-950');
+      html.classList.add('bg-white');
+      html.classList.remove('bg-slate-950');
     }
   }, [theme, isScreensaver]);
 
@@ -266,7 +271,7 @@ const App: React.FC = () => {
   const logoText = theme === 'dark' ? 'text-slate-600 group-hover:text-slate-500' : 'text-slate-200 group-hover:text-slate-500';
   const logoBg = theme === 'dark' ? 'white' : 'black';
   const settingsBtnClass = theme === 'dark' ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100';
-  // Style and color matching the 'light-dark mode' button in settings window
+  // Style and color matching the buttons in the mobile header
   const headerActionBtnClass = theme === 'dark' ? 'text-slate-500 hover:text-slate-300 hover:bg-slate-800' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100';
 
   const overlayOpacity = isScreensaver ? (isIdle ? 'opacity-0' : 'opacity-100') : 'opacity-0 group-hover:opacity-100';
@@ -292,11 +297,15 @@ const App: React.FC = () => {
                 </div>
             </a>
             <div className="flex items-center gap-1">
-                {/* Randomize button to the left of Settings, matching Theme Toggle style */}
+                {/* Randomize button */}
                 <button onClick={handleRandomize} className={`p-2 rounded-lg transition-colors ${headerActionBtnClass}`} title="Randomize pattern">
                     <Sparkles size={20} />
                 </button>
-                {/* Theme button to the left of Settings */}
+                {/* Screensaver button added between random and theme buttons */}
+                <button onClick={startScreensaver} className={`p-2 rounded-lg transition-colors ${headerActionBtnClass}`} title="Start screensaver">
+                    <Monitor size={20} />
+                </button>
+                {/* Theme button */}
                 <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} className={`p-2 rounded-lg transition-colors ${headerActionBtnClass}`} title="Switch theme">
                     {theme === 'dark' ? <Sun size={20} fill="currentColor" /> : <Moon size={20} fill="currentColor" />}
                 </button>
