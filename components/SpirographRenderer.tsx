@@ -58,8 +58,10 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
   const pointsRef = useRef<{x: number, y: number}[]>([]);
   
   // Interaction State
-  const isDraggingRef = useRef(false);
-  const lastPointerRef = useRef({ x: 0, y: 0 });
+  // Map to store active pointers: id -> {x, y}
+  const pointersRef = useRef<Map<number, {x: number, y: number}>>(new Map());
+  // Store previous distance for pinch calculations
+  const prevPinchDistRef = useRef<number | null>(null);
 
   // Resize handler
   const handleResize = useCallback(() => {
@@ -649,22 +651,84 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
   };
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    isDraggingRef.current = true;
-    lastPointerRef.current = { x: e.clientX, y: e.clientY };
     (e.target as Element).setPointerCapture(e.pointerId);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDraggingRef.current) return;
-    const dx = e.clientX - lastPointerRef.current.x;
-    const dy = e.clientY - lastPointerRef.current.y;
-    lastPointerRef.current = { x: e.clientX, y: e.clientY };
-    onTransformChange(prev => ({...prev, x: prev.x + dx, y: prev.y + dy}));
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    // Reset pinch distance when number of pointers changes to avoid jumps
+    prevPinchDistRef.current = null;
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
-    isDraggingRef.current = false;
     (e.target as Element).releasePointerCapture(e.pointerId);
+    pointersRef.current.delete(e.pointerId);
+    prevPinchDistRef.current = null;
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    const pointers = pointersRef.current;
+    if (!pointers.has(e.pointerId)) return;
+
+    // 1. Handle Panning (1 finger)
+    if (pointers.size === 1) {
+        const prev = pointers.get(e.pointerId)!;
+        const dx = e.clientX - prev.x;
+        const dy = e.clientY - prev.y;
+        
+        onTransformChange(t => ({ ...t, x: t.x + dx, y: t.y + dy }));
+        
+        // Update stored position
+        pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
+    // 2. Handle Pinch Zoom (2 fingers)
+    else if (pointers.size === 2) {
+        // We need the other pointer's coordinates (which hasn't moved in this specific event, but is in the map)
+        // Convert map values to array
+        const points = Array.from(pointers.entries());
+        
+        // Identify which one is the current event pointer
+        const currentId = e.pointerId;
+        const otherPoint = points.find(p => p[0] !== currentId);
+        
+        if (otherPoint) {
+            const p1 = { x: e.clientX, y: e.clientY }; // Current (moved)
+            const p2 = otherPoint[1]; // Other (stationary in this event context)
+            
+            const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+            
+            if (prevPinchDistRef.current !== null) {
+                const scaleFactor = dist / prevPinchDistRef.current;
+                
+                // Calculate center of pinch
+                const midX = (p1.x + p2.x) / 2;
+                const midY = (p1.y + p2.y) / 2;
+                
+                if (Math.abs(scaleFactor - 1) > 0.005) { // Threshold to reduce jitter
+                     onTransformChange(prev => {
+                        const newK = Math.max(0.1, Math.min(20, prev.k * scaleFactor));
+                        if (!containerRef.current) return { ...prev, k: newK };
+                        
+                        const rect = containerRef.current.getBoundingClientRect();
+                        const mouseX = midX - rect.left;
+                        const mouseY = midY - rect.top;
+                        const W = rect.width;
+                        const H = rect.height;
+                        
+                        // Zoom towards pinch center
+                        const worldX = (mouseX - (W / 2 + prev.x)) / prev.k;
+                        const worldY = (mouseY - (H / 2 + prev.y)) / prev.k;
+                        
+                        const newX = mouseX - W / 2 - worldX * newK;
+                        const newY = mouseY - H / 2 - worldY * newK;
+                        
+                        return { x: newX, y: newY, k: newK };
+                     });
+                }
+            }
+            prevPinchDistRef.current = dist;
+            
+            // Update current pointer in map
+            pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        }
+    }
   };
 
   return (
@@ -677,6 +741,7 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
+        onPointerCancel={handlePointerUp}
     >
       <canvas ref={traceCanvasRef} className="absolute top-0 left-0 w-full h-full z-10" />
       <canvas ref={gearsCanvasRef} className="absolute top-0 left-0 w-full h-full z-20 pointer-events-none" />

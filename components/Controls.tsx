@@ -309,6 +309,9 @@ export const Controls: React.FC<ControlsProps> = ({
     onClear();
     if (!isPlaying) onTogglePlay();
     if (onAutoZoom) onAutoZoom(nextConfig);
+    
+    // If on mobile (or whenever onClose is provided), close the controls drawer
+    if (onClose) onClose();
   };
 
   // Styles based on theme
