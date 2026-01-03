@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import { Controls } from './components/Controls';
 import { SpirographRenderer } from './components/SpirographRenderer';
@@ -131,6 +132,33 @@ const App: React.FC = () => {
     setConfig(prev => ({ ...prev, showGears: true }));
   }, []); 
 
+  const triggerNextScreensaverImage = useCallback(() => {
+    const newConfig = generateRandomConfig('dark');
+    const k = calculateOptimalScale(newConfig, window.innerWidth, window.innerHeight);
+    newConfig.lineWidth = calculateResponsiveLineWidth(k, window.innerWidth, window.innerHeight) * 2;
+    setConfig(newConfig); setShouldClear(true); setIsPlaying(true);
+    setViewTransform({ x: 0, y: 0, k });
+    nextSwitchTimeRef.current = Date.now() + screensaverDuration;
+  }, [screensaverDuration]);
+
+  // Screensaver Keyboard Interaction Logic
+  useEffect(() => {
+    if (!isScreensaver) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        triggerNextScreensaverImage();
+      } else if (!['Shift', 'Control', 'Alt', 'Meta', 'CapsLock'].includes(e.key)) {
+        // Any other key exits (ignoring common modifier keys)
+        stopScreensaver();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isScreensaver, triggerNextScreensaverImage, stopScreensaver]);
+
   useLayoutEffect(() => {
     if (!isScreensaver) { setIsIdle(false); toggleGlobalCursor(false); return; }
     setIsIdle(true); toggleGlobalCursor(true);
@@ -159,15 +187,6 @@ const App: React.FC = () => {
     nextSwitchTimeRef.current = Date.now() + screensaverDuration;
     setTimeLeft(Math.ceil(screensaverDuration / 1000));
   };
-
-  const triggerNextScreensaverImage = useCallback(() => {
-    const newConfig = generateRandomConfig('dark');
-    const k = calculateOptimalScale(newConfig, window.innerWidth, window.innerHeight);
-    newConfig.lineWidth = calculateResponsiveLineWidth(k, window.innerWidth, window.innerHeight) * 2;
-    setConfig(newConfig); setShouldClear(true); setIsPlaying(true);
-    setViewTransform({ x: 0, y: 0, k });
-    nextSwitchTimeRef.current = Date.now() + screensaverDuration;
-  }, [screensaverDuration]);
 
   useEffect(() => {
     if (!isScreensaver || isInfinityMode) return;
