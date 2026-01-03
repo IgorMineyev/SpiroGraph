@@ -219,6 +219,7 @@ export const Controls: React.FC<ControlsProps> = ({
   const bgPanel = theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200';
   const bgInput = theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-300';
   const greyBtnClass = theme === 'dark' ? 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700' : 'bg-slate-200 text-slate-600 hover:text-slate-800 hover:bg-slate-300';
+  const primaryBtnClass = 'bg-green-600 text-white border-green-500 hover:bg-green-700 shadow-lg shadow-green-500/20';
   const logoBg = theme === 'dark' ? 'white' : 'black';
   const logoText = theme === 'dark' ? 'text-slate-600 group-hover:text-slate-500' : 'text-slate-200 group-hover:text-slate-500';
 
@@ -246,7 +247,7 @@ export const Controls: React.FC<ControlsProps> = ({
 
       <div className="p-4 pt-2 flex-1 space-y-3">
         <div className="space-y-2">
-            <button onClick={handleRandomRatioAndEccentricity} className={`w-full p-2 rounded-lg border transition-colors flex items-center justify-center gap-3 text-xs font-medium ${greyBtnClass}`} title="Random everything">
+            <button onClick={handleRandomRatioAndEccentricity} className={`w-full p-2 rounded-lg border transition-colors flex items-center justify-center gap-3 text-xs font-medium ${primaryBtnClass}`} title="Random everything">
                 <Sparkles size={20} className="shrink-0" /><span>Draw a random spiro curve!</span>
             </button>
             <button onClick={onStartScreensaver} className={`w-full p-2 rounded-lg transition-colors flex items-center justify-center gap-3 text-xs font-medium ${greyBtnClass}`}>

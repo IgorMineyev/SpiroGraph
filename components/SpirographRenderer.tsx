@@ -54,13 +54,10 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
   const rotorRotationRef = useRef<number>(0);
   
   // History of points for redrawing
-  // Storing {x, y} relative to center (0,0)
   const pointsRef = useRef<{x: number, y: number}[]>([]);
   
   // Interaction State
-  // Map to store active pointers: id -> {x, y}
   const pointersRef = useRef<Map<number, {x: number, y: number}>>(new Map());
-  // Store previous distance for pinch calculations
   const prevPinchDistRef = useRef<number | null>(null);
 
   // Resize handler
@@ -102,8 +99,6 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
 
   // --- MATH ENGINE HELPERS ---
 
-  // Geometric Reconstruction Helper (Reused by animate and download)
-  // Calculates the physical state of the gears based on current parameters (t, u)
   const getGeometry = (
     t: number, 
     u: number, 
@@ -113,38 +108,29 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
     sAspect: number, 
     rAspect: number
   ) => {
-    // 1. Stator contact point and tangent angle
     const sx = R * Math.cos(t);
     const sy = R * sAspect * Math.sin(t);
-    // Tangent vector of stator: (-R sin t, R*k cos t)
     const stx = -R * Math.sin(t);
     const sty = R * sAspect * Math.cos(t);
-    const alpha = Math.atan2(stx, -sty); // Angle of the tangent vector
+    const alpha = Math.atan2(stx, -sty); 
 
-    // 2. Rotor tangent angle relative to its own frame
-    // Tangent vector of rotor: (-r sin u, r*k cos u)
     const rtx = -r * Math.sin(u);
     const rty = r * rAspect * Math.cos(u);
     const beta = Math.atan2(rtx * -1, rty); 
 
-    // 3. Global Rotation of Rotor
     const phi = alpha - beta + Math.PI;
 
-    // 4. Rotor Center position
     const rcx = r * Math.cos(u);
     const rcy = r * rAspect * Math.sin(u);
     
-    // Rotate this vector by phi to get it in world frame
     const cosPhi = Math.cos(phi);
     const sinPhi = Math.sin(phi);
     const rotRcx = rcx * cosPhi - rcy * sinPhi;
     const rotRcy = rcx * sinPhi + rcy * cosPhi;
 
-    // Center = StatorContact - RotatedRotorVector
     const cx = sx - rotRcx;
     const cy = sy - rotRcy;
 
-    // 5. Pen Position
     const px = cx + d * cosPhi;
     const py = cy + d * sinPhi;
 
@@ -186,21 +172,16 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
     sAspect: number, 
     rAspect: number
   ) => {
-    // RK4
     const k1 = getDerivative(t, currentU, R, sAspect, r, rAspect);
     const k2 = getDerivative(t + dt/2, currentU + (dt * k1) / 2, R, sAspect, r, rAspect);
     const k3 = getDerivative(t + dt/2, currentU + (dt * k2) / 2, R, sAspect, r, rAspect);
     const k4 = getDerivative(t + dt, currentU + dt * k3, R, sAspect, r, rAspect);
 
     const newU = currentU + (dt / 6) * (k1 + 2 * k2 + 2 * k3 + k4);
-    
-    // Use the helper to get geometry for t+dt and newU
     const geom = getGeometry(t + dt, newU, R, r, d, sAspect, rAspect);
-
     return { ...geom, newU };
   };
 
-  // Helper function to draw rounded rectangles
   const drawRoundedRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
     ctx.beginPath();
     ctx.moveTo(x + r, y);
@@ -228,22 +209,21 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
       const dpr = window.devicePixelRatio || 1;
       const { x, y, k } = transformRef.current;
       
-      // Constants for colors
       const bgColor = downloadTheme === 'dark' ? '#020617' : '#ffffff';
-      const textColor = downloadTheme === 'dark' ? '#ffffff' : '#000000';
-      // Slate-500 (Medium Grey) for light mode to ensure OCR contrast
-      // Slate-400 for Dark mode
-      const footerTextColor = downloadTheme === 'dark' ? '#94a3b8' : '#64748b';
+      
+      // BADGE COLORS: Interchange them to match mode
+      const badgeBgColor = downloadTheme === 'dark' ? '#000000' : '#ffffff';
+      const statsTextColor = downloadTheme === 'dark' ? '#ffffff' : '#000000';
+      const footerTextColor = downloadTheme === 'dark' ? '#475569' : '#94a3b8';
+
       const gearStroke = downloadTheme === 'dark' ? '#475569' : '#cbd5e1';
       const rotorStroke = downloadTheme === 'dark' ? '#64748b' : '#94a3b8';
 
       // Footer
       const footerText = "Play at https://igormineyev.github.io/SpiroGraph/";
-      // Increase relative font size for export
       const footerFontSize = Math.max(12, width / 70);
       const footerPaddingBottom = footerFontSize * 0.8;
       
-      // Calculate Footer Box
       const tCtx = sourceCanvas.getContext('2d');
       if (!tCtx) return;
       tCtx.font = `500 ${footerFontSize}px Inter, sans-serif`;
@@ -255,8 +235,6 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
       const fBoxX = (width / 2) - (fBoxWidth / 2);
       const fBoxY = height - footerPaddingBottom - footerFontSize - (fPadding * 0.75);
 
-      // --- PNG GENERATION (High Res) ---
-      // Force high resolution for better OCR (approx 3000px wide)
       const targetWidth = 3000;
       const scaleFactor = Math.max(2, targetWidth / width);
       
@@ -266,20 +244,13 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
       const ctx = tempCanvas.getContext('2d');
       
       if (ctx) {
-        // 0. Scale Context
-        // All subsequent drawing ops will be scaled automatically
         ctx.scale(scaleFactor, scaleFactor);
-
-        // 1. Fill background (use explicit raw dimensions for clear fill)
         ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform to fill entire pixel buffer
+        ctx.setTransform(1, 0, 0, 1, 0, 0); 
         ctx.fillStyle = bgColor;
         ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
         ctx.restore();
         
-        // Setup transform for drawing (Re-use logic)
-        // Note: Since we scaled the context, 'width' and 'height' in logic map to scaled pixels.
-        // cx/cy calculation is based on source coordinates, which is correct.
         const cx = (sourceCanvas.width / 2) + (x * dpr);
         const cy = (sourceCanvas.height / 2) + (y * dpr);
         const sk = k * dpr;
@@ -288,7 +259,6 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
         ctx.translate(cx, cy);
         ctx.scale(sk, sk);
 
-        // 2. Draw the trace
         ctx.strokeStyle = config.penColor;
         ctx.lineWidth = config.lineWidth;
         ctx.globalAlpha = config.opacity;
@@ -305,10 +275,8 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
             ctx.stroke();
         }
         
-        // 3. Draw Initial Gears
         if (withStats) {
             ctx.globalAlpha = 1.0;
-            
             const { outerRadius: R, innerRadius: r, penOffset: d, statorAspect, rotorAspect } = config;
             const sAspect = statorAspect ?? 1.0;
             const rAspect = rotorAspect ?? 1.0;
@@ -323,28 +291,24 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
 
             const baseLW = 2 / k;
             
-            // Draw Stator
             ctx.strokeStyle = gearStroke;
             ctx.lineWidth = baseLW * 2;
             ctx.beginPath();
             ctx.ellipse(0, 0, R, R * sAspect, 0, 0, Math.PI * 2);
             ctx.stroke();
             
-            // Draw Rotor
             ctx.strokeStyle = rotorStroke;
             ctx.lineWidth = baseLW;
             ctx.beginPath();
             ctx.ellipse(state.cx, state.cy, r, r * rAspect, state.phi, 0, Math.PI * 2);
             ctx.stroke();
 
-            // Draw Arm
             ctx.strokeStyle = rotorStroke;
             ctx.beginPath();
             ctx.moveTo(state.cx, state.cy);
             ctx.lineTo(state.px, state.py);
             ctx.stroke();
 
-            // Draw Pen Holder
             const tipRadius = config.lineWidth / 2;
             const holderRadius = tipRadius * (4.1 / 2.55);
 
@@ -353,13 +317,11 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
             ctx.arc(state.px, state.py, holderRadius, 0, Math.PI * 2);
             ctx.fill();
 
-            // Draw Pen Tip
             ctx.fillStyle = config.penColor;
             ctx.beginPath();
             ctx.arc(state.px, state.py, tipRadius, 0, Math.PI * 2);
             ctx.fill();
 
-            // Draw Contact Point
             const contactRadius = 6 / k;
             ctx.fillStyle = '#ef4444'; 
             ctx.beginPath();
@@ -369,7 +331,6 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
 
         ctx.restore();
 
-        // 4. Draw Stats Overlay (PNG ONLY for now)
         if (withStats) {
             let ratioText = "";
             if (config.numerator && config.denominator) {
@@ -419,9 +380,9 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
             const boxX = margin;
             const boxY = height - boxHeight - margin - footerSpace;
 
-            ctx.fillStyle = bgColor;
+            ctx.fillStyle = badgeBgColor;
             drawRoundedRect(ctx, boxX, boxY, boxWidth, boxHeight, 8);
-            ctx.fillStyle = textColor;
+            ctx.fillStyle = statsTextColor;
             ctx.textAlign = 'left';
             ctx.textBaseline = 'top';
             lines.forEach((line, i) => {
@@ -429,12 +390,11 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
             });
         }
         
-        // 5. Draw Footer (Watermark)
         ctx.save();
         ctx.font = `500 ${footerFontSize}px Inter, sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
-        ctx.fillStyle = bgColor;
+        ctx.fillStyle = badgeBgColor;
         drawRoundedRect(ctx, fBoxX, fBoxY, fBoxWidth, fBoxHeight, 8);
         ctx.fillStyle = footerTextColor;
         ctx.fillText(footerText, width / 2, height - footerPaddingBottom);
@@ -475,7 +435,6 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
     const rAspect = rotorAspect ?? 1.0;
     const isCircular = Math.abs(sAspect - 1.0) < 0.005 && Math.abs(rAspect - 1.0) < 0.005;
 
-    // Simulation Step (Only if playing)
     if (isPlaying) {
       const dt = 0.002; 
       const steps = Math.ceil(speed * 5); 
@@ -497,21 +456,18 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
         pointsRef.current.push({ x: state.px, y: state.py });
       }
       
-      // Keep rotation ref updated for gears if circular (physics step does it otherwise)
       if (isCircular) {
           const state = calculateExactStep(angleRef.current, R, r, d);
           rotorRotationRef.current = state.phi;
       }
     }
 
-    // DRAWING
     const dpr = window.devicePixelRatio || 1;
     const { x, y, k } = transformRef.current;
     
     const centerX = (width / 2) + x;
     const centerY = (height / 2) + y;
 
-    // 1. Draw Trace
     traceCtx.setTransform(1, 0, 0, 1, 0, 0);
     traceCtx.clearRect(0, 0, traceCanvasRef.current.width, traceCanvasRef.current.height);
     traceCtx.setTransform(k * dpr, 0, 0, k * dpr, centerX * dpr, centerY * dpr);
@@ -534,7 +490,6 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
         traceCtx.stroke();
     }
 
-    // 2. Draw Gears
     gearsCtx.setTransform(1, 0, 0, 1, 0, 0);
     gearsCtx.clearRect(0, 0, gearsCanvasRef.current.width, gearsCanvasRef.current.height);
 
@@ -548,27 +503,23 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
         const baseLW = 2 / k;
         const thinLW = 1 / k;
 
-        // Use opaque colors (Slate palette)
-        const gearStroke = theme === 'dark' ? '#475569' : '#cbd5e1'; // Slate-600 : Slate-300
-        const rotorStroke = theme === 'dark' ? '#64748b' : '#94a3b8'; // Slate-500 : Slate-400
-        const spokeStroke = theme === 'dark' ? '#334155' : '#e2e8f0'; // Slate-700 : Slate-200
-        const armStroke = theme === 'dark' ? '#64748b' : '#94a3b8';   // Slate-500 : Slate-400
+        const gearStroke = theme === 'dark' ? '#475569' : '#cbd5e1'; 
+        const rotorStroke = theme === 'dark' ? '#64748b' : '#94a3b8'; 
+        const spokeStroke = theme === 'dark' ? '#334155' : '#e2e8f0'; 
+        const armStroke = theme === 'dark' ? '#64748b' : '#94a3b8';   
 
-        // Stator (Outer Gear)
         gearsCtx.strokeStyle = gearStroke;
         gearsCtx.lineWidth = baseLW * 2;
         gearsCtx.beginPath();
         gearsCtx.ellipse(0, 0, R, R * sAspect, 0, 0, Math.PI * 2);
         gearsCtx.stroke();
 
-        // Rotor (Inner Gear)
         gearsCtx.strokeStyle = rotorStroke;
         gearsCtx.lineWidth = baseLW;
         gearsCtx.beginPath();
         gearsCtx.ellipse(state.cx, state.cy, r, r * rAspect, state.phi, 0, Math.PI * 2);
         gearsCtx.stroke();
 
-        // Spokes
         gearsCtx.save();
         gearsCtx.translate(state.cx, state.cy);
         gearsCtx.rotate(state.phi);
@@ -582,7 +533,6 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
         gearsCtx.stroke();
         gearsCtx.restore();
 
-        // Arm
         gearsCtx.strokeStyle = armStroke;
         gearsCtx.lineWidth = baseLW;
         gearsCtx.beginPath();
@@ -590,7 +540,6 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
         gearsCtx.lineTo(state.px, state.py);
         gearsCtx.stroke();
 
-        // Pen Holder (Large Circle)
         const tipRadius = config.lineWidth / 2;
         const holderRadius = tipRadius * (4.1 / 2.55);
 
@@ -599,16 +548,11 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
         gearsCtx.arc(state.px, state.py, holderRadius, 0, Math.PI * 2);
         gearsCtx.fill();
 
-        // Pen Tip (Inner Dot)
         gearsCtx.fillStyle = config.penColor;
         gearsCtx.beginPath();
         gearsCtx.arc(state.px, state.py, tipRadius, 0, Math.PI * 2);
         gearsCtx.fill();
 
-        // Contact Point
-        // Requirement: Size (diameter) = 3 * StatorThickness.
-        // Stator thickness = baseLW * 2 = 4 / k.
-        // Diameter = 12 / k. Radius = 6 / k.
         gearsCtx.fillStyle = '#ef4444';
         gearsCtx.beginPath();
         gearsCtx.arc(state.contactX, state.contactY, 6 / k, 0, Math.PI * 2);
@@ -653,7 +597,6 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
   const handlePointerDown = (e: React.PointerEvent) => {
     (e.target as Element).setPointerCapture(e.pointerId);
     pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    // Reset pinch distance when number of pointers changes to avoid jumps
     prevPinchDistRef.current = null;
   };
 
@@ -667,41 +610,29 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
     const pointers = pointersRef.current;
     if (!pointers.has(e.pointerId)) return;
 
-    // 1. Handle Panning (1 finger)
     if (pointers.size === 1) {
         const prev = pointers.get(e.pointerId)!;
         const dx = e.clientX - prev.x;
         const dy = e.clientY - prev.y;
-        
         onTransformChange(t => ({ ...t, x: t.x + dx, y: t.y + dy }));
-        
-        // Update stored position
         pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     }
-    // 2. Handle Pinch Zoom (2 fingers)
     else if (pointers.size === 2) {
-        // We need the other pointer's coordinates (which hasn't moved in this specific event, but is in the map)
-        // Convert map values to array
         const points = Array.from(pointers.entries());
-        
-        // Identify which one is the current event pointer
         const currentId = e.pointerId;
         const otherPoint = points.find(p => p[0] !== currentId);
         
         if (otherPoint) {
-            const p1 = { x: e.clientX, y: e.clientY }; // Current (moved)
-            const p2 = otherPoint[1]; // Other (stationary in this event context)
-            
+            const p1 = { x: e.clientX, y: e.clientY }; 
+            const p2 = otherPoint[1]; 
             const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
             
             if (prevPinchDistRef.current !== null) {
                 const scaleFactor = dist / prevPinchDistRef.current;
-                
-                // Calculate center of pinch
                 const midX = (p1.x + p2.x) / 2;
                 const midY = (p1.y + p2.y) / 2;
                 
-                if (Math.abs(scaleFactor - 1) > 0.005) { // Threshold to reduce jitter
+                if (Math.abs(scaleFactor - 1) > 0.005) { 
                      onTransformChange(prev => {
                         const newK = Math.max(0.1, Math.min(20, prev.k * scaleFactor));
                         if (!containerRef.current) return { ...prev, k: newK };
@@ -712,7 +643,6 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
                         const W = rect.width;
                         const H = rect.height;
                         
-                        // Zoom towards pinch center
                         const worldX = (mouseX - (W / 2 + prev.x)) / prev.k;
                         const worldY = (mouseY - (H / 2 + prev.y)) / prev.k;
                         
@@ -724,8 +654,6 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
                 }
             }
             prevPinchDistRef.current = dist;
-            
-            // Update current pointer in map
             pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
         }
     }

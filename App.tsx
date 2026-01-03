@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import { Controls } from './components/Controls';
 import { SpirographRenderer } from './components/SpirographRenderer';
@@ -119,7 +118,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const k = calculateOptimalScale(config, window.innerWidth, window.innerHeight);
-    setConfig(prev => ({ ...prev, lineWidth: calculateResponsiveLineWidth(k, window.innerWidth, window.innerHeight) * 2 }));
+    setConfig(prev => ({ ...prev, lineWidth: calculateResponsiveLineWidth(k, window.innerWidth, window.innerHeight) * 4 }));
     setViewTransform(prev => ({ ...prev, k }));
   }, []);
 
@@ -135,28 +134,42 @@ const App: React.FC = () => {
   const triggerNextScreensaverImage = useCallback(() => {
     const newConfig = generateRandomConfig('dark');
     const k = calculateOptimalScale(newConfig, window.innerWidth, window.innerHeight);
-    newConfig.lineWidth = calculateResponsiveLineWidth(k, window.innerWidth, window.innerHeight) * 2;
+    newConfig.lineWidth = calculateResponsiveLineWidth(k, window.innerWidth, window.innerHeight) * 4;
     setConfig(newConfig); setShouldClear(true); setIsPlaying(true);
     setViewTransform({ x: 0, y: 0, k });
     nextSwitchTimeRef.current = Date.now() + screensaverDuration;
   }, [screensaverDuration]);
+
+  const handleRandomize = useCallback(() => {
+    const newConfig = generateRandomConfig(theme);
+    const k = calculateOptimalScale(newConfig, window.innerWidth, window.innerHeight);
+    newConfig.lineWidth = calculateResponsiveLineWidth(k, window.innerWidth, window.innerHeight) * 4;
+    setConfig(newConfig);
+    setShouldClear(true);
+    setIsPlaying(true);
+    setViewTransform({ x: 0, y: 0, k });
+  }, [theme]);
 
   // Screensaver Keyboard Interaction Logic
   useEffect(() => {
     if (!isScreensaver) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
-        e.preventDefault();
-        triggerNextScreensaverImage();
-      } else if (!['Shift', 'Control', 'Alt', 'Meta', 'CapsLock'].includes(e.key)) {
-        // Any other key exits (ignoring common modifier keys)
-        stopScreensaver();
+      if (e.key === ' ' || e.code === 'Space') {
+        if (!(e.target instanceof HTMLInputElement)) {
+          e.preventDefault();
+          triggerNextScreensaverImage();
+        }
+      } else {
+        const modifiers = ['Shift', 'Control', 'Alt', 'Meta', 'CapsLock'];
+        if (!modifiers.includes(e.key)) {
+          stopScreensaver();
+        }
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [isScreensaver, triggerNextScreensaverImage, stopScreensaver]);
 
   useLayoutEffect(() => {
@@ -182,7 +195,7 @@ const App: React.FC = () => {
     previousThemeRef.current = theme;
     setTheme('dark');
     const k = calculateOptimalScale(config, window.innerWidth, window.innerHeight);
-    setConfig(prev => ({ ...prev, lineWidth: calculateResponsiveLineWidth(k, window.innerWidth, window.innerHeight) * 2, speed: 1 }));
+    setConfig(prev => ({ ...prev, lineWidth: calculateResponsiveLineWidth(k, window.innerWidth, window.innerHeight) * 4, speed: 1 }));
     setViewTransform({ x: 0, y: 0, k });
     nextSwitchTimeRef.current = Date.now() + screensaverDuration;
     setTimeLeft(Math.ceil(screensaverDuration / 1000));
@@ -219,6 +232,8 @@ const App: React.FC = () => {
   const logoText = theme === 'dark' ? 'text-slate-600 group-hover:text-slate-500' : 'text-slate-200 group-hover:text-slate-500';
   const logoBg = theme === 'dark' ? 'white' : 'black';
   const settingsBtnClass = theme === 'dark' ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100';
+  // Style and color matching the 'light-dark mode' button in settings window
+  const headerActionBtnClass = theme === 'dark' ? 'text-slate-500 hover:text-slate-300 hover:bg-slate-800' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100';
 
   const overlayOpacity = isScreensaver ? (isIdle ? 'opacity-0' : 'opacity-100') : 'opacity-0 group-hover:opacity-100';
 
@@ -242,9 +257,19 @@ const App: React.FC = () => {
                     </div>
                 </div>
             </a>
-            <button onClick={() => setShowControls(true)} className={`p-2 rounded-lg transition-colors ${settingsBtnClass}`} aria-label="Open settings">
-                <Settings size={20} />
-            </button>
+            <div className="flex items-center gap-1">
+                {/* Randomize button to the left of Settings, matching Theme Toggle style */}
+                <button onClick={handleRandomize} className={`p-2 rounded-lg transition-colors ${headerActionBtnClass}`} title="Randomize pattern">
+                    <Sparkles size={20} />
+                </button>
+                {/* Theme button to the left of Settings */}
+                <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} className={`p-2 rounded-lg transition-colors ${headerActionBtnClass}`} title="Switch theme">
+                    {theme === 'dark' ? <Sun size={20} fill="currentColor" /> : <Moon size={20} fill="currentColor" />}
+                </button>
+                <button onClick={() => setShowControls(true)} className={`p-2 rounded-lg transition-colors ${settingsBtnClass}`} aria-label="Open settings">
+                    <Settings size={20} />
+                </button>
+            </div>
         </div>
       )}
 
@@ -260,7 +285,7 @@ const App: React.FC = () => {
           onStartScreensaver={startScreensaver} 
           onAutoZoom={(c) => { 
             const k = calculateOptimalScale(c, window.innerWidth, window.innerHeight); 
-            setConfig(prev => ({...c, lineWidth: calculateResponsiveLineWidth(k, window.innerWidth, window.innerHeight) * 2})); 
+            setConfig(prev => ({...c, lineWidth: calculateResponsiveLineWidth(k, window.innerWidth, window.innerHeight) * 4})); 
             setViewTransform({x:0, y:0, k}); 
           }} 
         />
@@ -269,7 +294,7 @@ const App: React.FC = () => {
       <div className="flex-1 relative h-full w-full overflow-hidden group">
         <SpirographRenderer config={config} isPlaying={isPlaying} shouldClear={shouldClear} onCleared={() => setShouldClear(false)} downloadState={downloadState} onDownloaded={() => setDownloadState({ active: false })} theme={theme} transform={viewTransform} onTransformChange={setViewTransform} isCursorHidden={isScreensaver && isIdle} />
         
-        {/* Screensaver/Standard Overlay - Lifted with pb-20 on mobile to ensure visibility */}
+        {/* Overlay */}
         <div className={`absolute bottom-0 left-0 p-4 pb-16 md:p-10 z-30 flex items-end transition-opacity duration-300 w-full ${overlayOpacity} force-cursor-visible`} onMouseDown={(e) => e.stopPropagation()}>
            <div className="flex flex-col md:flex-row md:items-center justify-between w-full gap-4 md:gap-0">
               <div className="flex flex-wrap items-center gap-2 md:gap-4">
@@ -333,7 +358,7 @@ const App: React.FC = () => {
                   )}
               </div>
 
-              {/* Screensaver Download buttons - styled to match theme */}
+              {/* Screensaver Download buttons */}
               {isScreensaver && (
                   <div className="flex items-center gap-2 mt-2 md:mt-0 justify-end">
                     <div className="flex items-center gap-2 bg-slate-900/50 p-1 rounded-full border border-slate-800/50">
@@ -345,7 +370,6 @@ const App: React.FC = () => {
                         <button onClick={() => setDownloadState({ active: true, theme: 'dark', withStats: false })} className={`p-2 rounded-full ${screensaverBtnClass} shadow-none`} title="Download Dark Image"><Download size={20} /></button>
                         <button onClick={() => setDownloadState({ active: true, theme: 'dark', withStats: true })} className={`p-2 rounded-full ${screensaverBtnClass} shadow-none`} title="Download Dark Image with Data"><FileText size={20} /></button>
                     </div>
-                    {/* Exit button with color matching theme instead of red */}
                     <button onClick={stopScreensaver} className={`p-2.5 rounded-full ${screensaverBtnClass} border-slate-800/50 text-slate-500 hover:text-slate-300 ml-1 md:ml-2`} title="Exit"><X size={22} /></button>
                   </div>
               )}
