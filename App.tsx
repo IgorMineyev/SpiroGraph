@@ -3,7 +3,7 @@ import { Controls } from './components/Controls';
 import { SpirographRenderer } from './components/SpirographRenderer';
 import { SpiroConfig, Theme } from './types';
 import { DEFAULT_CONFIG, PRESET_COLORS } from './constants';
-import { Settings, X, Maximize, ZoomIn, ZoomOut, Shuffle, Download, Infinity as InfinityIcon, Clock, FileText, Image as ImageIcon } from 'lucide-react';
+import { Settings, X, Maximize, Minimize, ZoomIn, ZoomOut, Shuffle, Download, Infinity as InfinityIcon, Clock, FileText, Image as ImageIcon, Pause, Play, Trash2 } from 'lucide-react';
 
 // Custom Crossed Infinity Icon to match "Show Gears" style (EyeOff)
 const InfinityOff = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
@@ -41,8 +41,8 @@ const toggleGlobalCursor = (hidden: boolean) => {
         if (!existingStyle) {
             const style = document.createElement('style');
             style.id = styleId;
-            // Use !important to override any specific element styles (like buttons)
-            // Include transparent image fallback
+            // This ONLY handles the nuclear option of hiding everything.
+            // The restoration/forcing of cursor visible is handled by the persistent style block in App component.
             style.textContent = `
                 *, *::before, *::after { 
                     cursor: none !important; 
@@ -57,6 +57,30 @@ const toggleGlobalCursor = (hidden: boolean) => {
         }
     }
 };
+
+// Persistent styles for force-visible cursor areas
+// This ensures that even when the global 'hidden' style is removed (during activity),
+// and the app falls back to 'cursor-none' class on the container,
+// these specific controls still force a visible cursor.
+const PERSISTENT_STYLES = `
+    .force-cursor-visible, .force-cursor-visible * {
+        cursor: default !important;
+    }
+    .force-cursor-visible button, 
+    .force-cursor-visible a, 
+    .force-cursor-visible [role="button"],
+    .force-cursor-visible input,
+    .force-cursor-visible input[type="range"],
+    .force-cursor-visible input[type="range"]::-webkit-slider-thumb {
+        cursor: pointer !important;
+    }
+    /* Ensure text inputs/labels are selectable or at least have default cursor */
+    .force-cursor-visible span, 
+    .force-cursor-visible label,
+    .force-cursor-visible p {
+        cursor: default !important;
+    }
+`;
 
 // Helper to generate a random configuration
 const generateRandomConfig = (currentTheme: Theme = 'light'): SpiroConfig => {
@@ -153,7 +177,7 @@ const App: React.FC = () => {
   
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [shouldClear, setShouldClear] = useState<boolean>(false);
-  const [downloadState, setDownloadState] = useState<{ active: boolean; theme?: 'dark' | 'light'; withStats?: boolean }>({ active: false });
+  const [downloadState, setDownloadState] = useState<{ active: boolean; theme?: 'dark' | 'light'; withStats?: boolean; }>({ active: false });
   const [showControls, setShowControls] = useState<boolean>(false);
   const [theme, setTheme] = useState<Theme>('light');
   
@@ -528,6 +552,8 @@ const App: React.FC = () => {
     <div 
         className={`flex flex-col md:flex-row h-screen w-screen relative overflow-hidden transition-colors duration-300 ${containerClass} ${isScreensaver ? 'cursor-none' : ''}`}
     >
+      <style>{PERSISTENT_STYLES}</style>
+
       {/* Screensaver Overlay Exit Button (Only visible in screensaver when active) */}
       {isScreensaver && (
         <div 
@@ -625,7 +651,7 @@ const App: React.FC = () => {
         
         {/* Left View Controls Overlay */}
         <div 
-            className={`absolute bottom-6 left-6 z-30 flex items-end transition-opacity duration-300 ${overlayOpacityClass} ${isScreensaver && isIdle ? 'pointer-events-none' : ''}`}
+            className={`absolute bottom-0 left-0 p-10 z-30 flex items-end transition-opacity duration-300 ${overlayOpacityClass} ${isScreensaver && isIdle ? 'pointer-events-none' : ''} ${isScreensaver ? 'force-cursor-visible' : ''}`}
             onMouseDown={(e) => e.stopPropagation()}
             onTouchStart={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
@@ -667,7 +693,7 @@ const App: React.FC = () => {
 
            {/* 2. Screensaver Sliders - The "Controls" */}
            {isScreensaver && (
-               <div className="flex items-center gap-6 ml-4 bg-slate-900 p-3 rounded-xl shadow-lg mb-0.5 border border-slate-800/50">
+               <div className="flex items-center gap-6 ml-4 bg-slate-900 p-3 rounded-xl shadow-lg border border-slate-800/50">
                    <div className="flex flex-col gap-1 w-28">
                         <div className="flex justify-between text-[10px] text-slate-500 font-medium px-1">
                             <span>Speed</span>
@@ -725,7 +751,7 @@ const App: React.FC = () => {
                                     step="0.1"
                                     value={durationInput}
                                     onChange={handleDurationInputChange}
-                                    className="w-10 bg-transparent text-center border-b border-slate-700 text-slate-400 focus:outline-none focus:border-slate-500 hover:border-slate-600 transition-colors appearance-none"
+                                    className="w-10 bg-transparent text-center border-b border-slate-700 text-slate-500 focus:outline-none focus:border-slate-500 hover:border-slate-600 transition-colors appearance-none [color-scheme:dark] [&::-webkit-inner-spin-button]:opacity-50 hover:[&::-webkit-inner-spin-button]:opacity-100"
                                 />
                                 <span className="text-[10px] text-slate-600">min</span>
                             </div>
@@ -738,7 +764,7 @@ const App: React.FC = () => {
         {/* Right Download Controls Overlay (Screensaver Only) */}
         {isScreensaver && (
             <div 
-                className={`absolute bottom-6 right-6 z-30 flex items-center gap-2 transition-opacity duration-300 ${overlayOpacityClass} ${isScreensaver && isIdle ? 'pointer-events-none' : ''}`}
+                className={`absolute bottom-0 right-0 p-10 z-30 flex items-center gap-2 transition-opacity duration-300 ${overlayOpacityClass} ${isScreensaver && isIdle ? 'pointer-events-none' : ''} ${isScreensaver ? 'force-cursor-visible' : ''}`}
                 onMouseDown={(e) => e.stopPropagation()}
                 onTouchStart={(e) => e.stopPropagation()}
                 onKeyDown={(e) => e.stopPropagation()}

@@ -447,11 +447,11 @@ export const Controls: React.FC<ControlsProps> = ({
 
         {/* Download Section */}
         <div>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-6 gap-2">
                 <button
                     onClick={() => onDownload(false)}
-                    className={`col-span-4 flex items-center justify-center gap-3 p-2 rounded-lg transition-all ${greyBtnClass}`}
-                    title="Download Image"
+                    className={`col-span-5 flex items-center justify-center gap-3 p-2 rounded-lg transition-all ${greyBtnClass}`}
+                    title="Download PNG image"
                 >
                     <Download size={20} />
                     <div className="flex flex-col items-start">
@@ -462,7 +462,7 @@ export const Controls: React.FC<ControlsProps> = ({
                 <button
                     onClick={() => onDownload(true)}
                     className={`col-span-1 flex items-center justify-center p-2 rounded-lg transition-all ${greyBtnClass}`}
-                    title="Download with Settings (Annotated)"
+                    title="Download PNG with settings"
                 >
                     <FileText size={20} />
                 </button>

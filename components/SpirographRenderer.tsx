@@ -7,7 +7,7 @@ interface SpirographRendererProps {
   isPlaying: boolean;
   shouldClear: boolean;
   onCleared: () => void;
-  downloadState: { active: boolean; theme?: 'dark' | 'light'; withStats?: boolean };
+  downloadState: { active: boolean; theme?: 'dark' | 'light'; withStats?: boolean; };
   onDownloaded: () => void;
   theme: Theme;
   transform: { x: number; y: number; k: number };
@@ -198,168 +198,195 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
     return { ...geom, newU };
   };
 
+  // Helper function to draw rounded rectangles
+  const drawRoundedRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.fill();
+  };
+
   // Handle Download
   useEffect(() => {
     if (downloadState.active && traceCanvasRef.current) {
       const sourceCanvas = traceCanvasRef.current;
       const downloadTheme = downloadState.theme || theme;
       const withStats = downloadState.withStats || false;
-
-      // Use exact source dimensions
+      
       const width = sourceCanvas.width;
       const height = sourceCanvas.height;
-
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = width;
-      tempCanvas.height = height;
-      const tCtx = tempCanvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
       const { x, y, k } = transformRef.current;
       
-      if (tCtx) {
-        // 1. Fill background
-        const bgColor = downloadTheme === 'dark' ? '#020617' : '#ffffff';
-        tCtx.fillStyle = bgColor;
-        tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+      // Constants for colors
+      const bgColor = downloadTheme === 'dark' ? '#020617' : '#ffffff';
+      const textColor = downloadTheme === 'dark' ? '#ffffff' : '#000000';
+      // Slate-500 (Medium Grey) for light mode to ensure OCR contrast
+      // Slate-400 for Dark mode
+      const footerTextColor = downloadTheme === 'dark' ? '#94a3b8' : '#64748b';
+      const gearStroke = downloadTheme === 'dark' ? '#475569' : '#cbd5e1';
+      const rotorStroke = downloadTheme === 'dark' ? '#64748b' : '#94a3b8';
+
+      // Footer
+      const footerText = "Play at https://igormineyev.github.io/SpiroGraph/";
+      // Increase relative font size for export
+      const footerFontSize = Math.max(12, width / 70);
+      const footerPaddingBottom = footerFontSize * 0.8;
+      
+      // Calculate Footer Box
+      const tCtx = sourceCanvas.getContext('2d');
+      if (!tCtx) return;
+      tCtx.font = `500 ${footerFontSize}px Inter, sans-serif`;
+      const fMetrics = tCtx.measureText(footerText);
+      const fTextWidth = fMetrics.width;
+      const fPadding = footerFontSize * 0.5;
+      const fBoxWidth = fTextWidth + (fPadding * 2);
+      const fBoxHeight = footerFontSize + (fPadding * 1.5);
+      const fBoxX = (width / 2) - (fBoxWidth / 2);
+      const fBoxY = height - footerPaddingBottom - footerFontSize - (fPadding * 0.75);
+
+      // --- PNG GENERATION (High Res) ---
+      // Force high resolution for better OCR (approx 3000px wide)
+      const targetWidth = 3000;
+      const scaleFactor = Math.max(2, targetWidth / width);
+      
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = width * scaleFactor;
+      tempCanvas.height = height * scaleFactor;
+      const ctx = tempCanvas.getContext('2d');
+      
+      if (ctx) {
+        // 0. Scale Context
+        // All subsequent drawing ops will be scaled automatically
+        ctx.scale(scaleFactor, scaleFactor);
+
+        // 1. Fill background (use explicit raw dimensions for clear fill)
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform to fill entire pixel buffer
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+        ctx.restore();
         
-        // Setup transform
-        const dpr = window.devicePixelRatio || 1;
+        // Setup transform for drawing (Re-use logic)
+        // Note: Since we scaled the context, 'width' and 'height' in logic map to scaled pixels.
+        // cx/cy calculation is based on source coordinates, which is correct.
         const cx = (sourceCanvas.width / 2) + (x * dpr);
         const cy = (sourceCanvas.height / 2) + (y * dpr);
         const sk = k * dpr;
 
-        tCtx.save();
-        tCtx.translate(cx, cy);
-        tCtx.scale(sk, sk);
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(sk, sk);
 
         // 2. Draw the trace
-        tCtx.strokeStyle = config.penColor;
-        tCtx.lineWidth = config.lineWidth;
-        tCtx.globalAlpha = config.opacity;
-        tCtx.lineJoin = 'round';
-        tCtx.lineCap = 'round';
+        ctx.strokeStyle = config.penColor;
+        ctx.lineWidth = config.lineWidth;
+        ctx.globalAlpha = config.opacity;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
 
         const points = pointsRef.current;
         if (points.length > 0) {
-            tCtx.beginPath();
-            tCtx.moveTo(points[0].x, points[0].y);
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
             for (let i = 1; i < points.length; i++) {
-                tCtx.lineTo(points[i].x, points[i].y);
+                ctx.lineTo(points[i].x, points[i].y);
             }
-            tCtx.stroke();
+            ctx.stroke();
         }
         
-        // 3. Draw Initial Gears (Annotated Mode)
+        // 3. Draw Initial Gears
         if (withStats) {
-             // Reset alpha for gears
-             tCtx.globalAlpha = 1.0;
-             
-             const { outerRadius: R, innerRadius: r, penOffset: d, statorAspect, rotorAspect } = config;
-             const sAspect = statorAspect ?? 1.0;
-             const rAspect = rotorAspect ?? 1.0;
-             const isCircular = Math.abs(sAspect - 1.0) < 0.005 && Math.abs(rAspect - 1.0) < 0.005;
+            ctx.globalAlpha = 1.0;
+            
+            const { outerRadius: R, innerRadius: r, penOffset: d, statorAspect, rotorAspect } = config;
+            const sAspect = statorAspect ?? 1.0;
+            const rAspect = rotorAspect ?? 1.0;
+            const isCircular = Math.abs(sAspect - 1.0) < 0.005 && Math.abs(rAspect - 1.0) < 0.005;
 
-             // Calculate State at t=0
-             let state;
-             if (isCircular) {
-                 state = calculateExactStep(0, R, r, d);
-             } else {
-                 state = getGeometry(0, 0, R, r, d, sAspect, rAspect);
-             }
+            let state;
+            if (isCircular) {
+                state = calculateExactStep(0, R, r, d);
+            } else {
+                state = getGeometry(0, 0, R, r, d, sAspect, rAspect);
+            }
 
-             const baseLW = 2 / k; // Match visual scale logic from renderer
-             // const thinLW = 1 / k; // Unused for outline only
+            const baseLW = 2 / k;
+            
+            // Draw Stator
+            ctx.strokeStyle = gearStroke;
+            ctx.lineWidth = baseLW * 2;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, R, R * sAspect, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Draw Rotor
+            ctx.strokeStyle = rotorStroke;
+            ctx.lineWidth = baseLW;
+            ctx.beginPath();
+            ctx.ellipse(state.cx, state.cy, r, r * rAspect, state.phi, 0, Math.PI * 2);
+            ctx.stroke();
 
-             // Use opaque colors (Slate palette)
-             const gearStroke = downloadTheme === 'dark' ? '#475569' : '#cbd5e1'; // Slate-600 : Slate-300
-             const rotorStroke = downloadTheme === 'dark' ? '#64748b' : '#94a3b8'; // Slate-500 : Slate-400
-             // const spokeStroke = downloadTheme === 'dark' ? '#334155' : '#e2e8f0'; // Slate-700 : Slate-200
-             // const armStroke = downloadTheme === 'dark' ? '#64748b' : '#94a3b8';   // Slate-500 : Slate-400
+            // Draw Arm
+            ctx.strokeStyle = rotorStroke;
+            ctx.beginPath();
+            ctx.moveTo(state.cx, state.cy);
+            ctx.lineTo(state.px, state.py);
+            ctx.stroke();
 
-             // Draw Stator
-             tCtx.strokeStyle = gearStroke;
-             tCtx.lineWidth = baseLW * 2;
-             tCtx.beginPath();
-             tCtx.ellipse(0, 0, R, R * sAspect, 0, 0, Math.PI * 2);
-             tCtx.stroke();
-             
-             // Draw Rotor
-             tCtx.strokeStyle = rotorStroke;
-             tCtx.lineWidth = baseLW;
-             tCtx.beginPath();
-             tCtx.ellipse(state.cx, state.cy, r, r * rAspect, state.phi, 0, Math.PI * 2);
-             tCtx.stroke();
+            // Draw Pen Holder
+            const tipRadius = config.lineWidth / 2;
+            const holderRadius = tipRadius * (4.1 / 2.55);
 
-             // Draw Arm
-             tCtx.strokeStyle = rotorStroke;
-             tCtx.beginPath();
-             tCtx.moveTo(state.cx, state.cy);
-             tCtx.lineTo(state.px, state.py);
-             tCtx.stroke();
+            ctx.fillStyle = rotorStroke;
+            ctx.beginPath();
+            ctx.arc(state.px, state.py, holderRadius, 0, Math.PI * 2);
+            ctx.fill();
 
-             // Draw Pen Holder (Large Circle)
-             const tipRadius = config.lineWidth / 2;
-             const holderRadius = tipRadius * (4.1 / 2.55);
+            // Draw Pen Tip
+            ctx.fillStyle = config.penColor;
+            ctx.beginPath();
+            ctx.arc(state.px, state.py, tipRadius, 0, Math.PI * 2);
+            ctx.fill();
 
-             tCtx.fillStyle = rotorStroke;
-             tCtx.beginPath();
-             tCtx.arc(state.px, state.py, holderRadius, 0, Math.PI * 2);
-             tCtx.fill();
-
-             // Draw Pen Tip (Inner Dot)
-             tCtx.fillStyle = config.penColor;
-             tCtx.beginPath();
-             tCtx.arc(state.px, state.py, tipRadius, 0, Math.PI * 2);
-             tCtx.fill();
-
-             // Draw Contact Point
-             // Size rule: 3x larger than thickness of stator. Stator thickness = baseLW * 2 = 4/k. 
-             // Diameter = 3 * (4/k) = 12/k. Radius = 6/k.
-             const contactRadius = 6 / k;
-
-             tCtx.fillStyle = '#ef4444'; 
-             tCtx.beginPath();
-             tCtx.arc(state.contactX, state.contactY, contactRadius, 0, Math.PI * 2);
-             tCtx.fill();
+            // Draw Contact Point
+            const contactRadius = 6 / k;
+            ctx.fillStyle = '#ef4444'; 
+            ctx.beginPath();
+            ctx.arc(state.contactX, state.contactY, contactRadius, 0, Math.PI * 2);
+            ctx.fill();
         }
 
-        tCtx.restore();
+        ctx.restore();
 
-        // Footer / Watermark Setup
-        const footerText = "Play at https://IgorMineyev.github.io/SpiroGraph/";
-        const footerFontSize = Math.max(12, width / 70);
-        const footerPaddingBottom = footerFontSize * 0.8;
-        
-        // 4. Draw Stats Overlay
+        // 4. Draw Stats Overlay (PNG ONLY for now)
         if (withStats) {
             let ratioText = "";
-            
-            // Prefer explicit numerator/denominator if set (preserves 20/35 instead of 4/7)
             if (config.numerator && config.denominator) {
                 ratioText = `${config.numerator}/${config.denominator}`;
             } else {
-                // Fallback to calculation
                 const outerC = calculateEllipseCircumference(config.outerRadius, config.statorAspect);
                 const innerC = calculateEllipseCircumference(config.innerRadius, config.rotorAspect);
                 const val = innerC / outerC;
-                
                 let bestN = 0, bestD = 1;
                 let minError = Number.MAX_VALUE;
-
                 for(let d = 1; d <= 1000; d++) {
                     const n = Math.round(val * d);
                     const error = Math.abs(val - n/d);
-                    if (error < minError) {
-                        bestN = n;
-                        bestD = d;
-                        minError = error;
-                    }
+                    if (error < minError) { bestN = n; bestD = d; minError = error; }
                 }
                 ratioText = `${bestN}/${bestD}`;
             }
 
             const colorName = COLOR_NAMES[config.penColor] || 'Custom';
-
-            // Sentence case + Color Name
             const lines = [
                 `Color: ${colorName} (${config.penColor})`,
                 `Thickness: ${config.lineWidth.toFixed(2)}`,
@@ -375,58 +402,41 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
             const fontSize = 14;
             const lineHeight = 18;
             const padding = 12;
-            tCtx.font = `bold ${fontSize}px Inter, monospace`;
+            ctx.font = `bold ${fontSize}px Inter, monospace`;
 
-            // Calculate Box Dimensions
             let maxWidth = 0;
             lines.forEach(line => {
-                const m = tCtx.measureText(line);
+                const m = ctx.measureText(line);
                 if (m.width > maxWidth) maxWidth = m.width;
             });
 
             const boxWidth = maxWidth + (padding * 2);
             const boxHeight = (lines.length * lineHeight) + (padding * 2);
-            
-            // Position: Bottom Left with margin
-            // Adjust margin to clear the footer
             const margin = 20;
             const footerSpace = footerFontSize + footerPaddingBottom + 10;
             const boxX = margin;
             const boxY = height - boxHeight - margin - footerSpace;
 
-            // Only draw background if NOT in dark mode
-            if (downloadTheme !== 'dark') {
-                // Draw Semi-transparent White Background
-                tCtx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-                tCtx.fillRect(boxX, boxY, boxWidth, boxHeight);
-            }
-            
-            // Text Color: White in dark mode, Black otherwise
-            tCtx.fillStyle = downloadTheme === 'dark' ? '#ffffff' : '#000000';
-            tCtx.textAlign = 'left';
-            tCtx.textBaseline = 'top';
-
+            ctx.fillStyle = bgColor;
+            drawRoundedRect(ctx, boxX, boxY, boxWidth, boxHeight, 8);
+            ctx.fillStyle = textColor;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
             lines.forEach((line, i) => {
-                tCtx.fillText(line, boxX + padding, boxY + padding + (i * lineHeight));
+                ctx.fillText(line, boxX + padding, boxY + padding + (i * lineHeight));
             });
         }
         
         // 5. Draw Footer (Watermark)
-        tCtx.save();
-        tCtx.font = `500 ${footerFontSize}px Inter, sans-serif`;
-        tCtx.textAlign = 'center';
-        tCtx.textBaseline = 'bottom';
-        
-        if (downloadTheme === 'dark') {
-             // Dark mode: "darker grey" (slate-600 on slate-950)
-             tCtx.fillStyle = '#475569'; 
-        } else {
-             // Light mode: "lighter grey" (slate-400 on white)
-             tCtx.fillStyle = '#94a3b8'; 
-        }
-        
-        tCtx.fillText(footerText, width / 2, height - footerPaddingBottom);
-        tCtx.restore();
+        ctx.save();
+        ctx.font = `500 ${footerFontSize}px Inter, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillStyle = bgColor;
+        drawRoundedRect(ctx, fBoxX, fBoxY, fBoxWidth, fBoxHeight, 8);
+        ctx.fillStyle = footerTextColor;
+        ctx.fillText(footerText, width / 2, height - footerPaddingBottom);
+        ctx.restore();
 
         const timestamp = Date.now();
         const link = document.createElement('a');
@@ -438,6 +448,7 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
         link.href = tempCanvas.toDataURL('image/png');
         link.click();
       }
+      
       onDownloaded();
     }
   }, [downloadState, onDownloaded, theme, config]);
