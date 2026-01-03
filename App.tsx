@@ -3,7 +3,7 @@ import { Controls } from './components/Controls';
 import { SpirographRenderer } from './components/SpirographRenderer';
 import { SpiroConfig, Theme } from './types';
 import { DEFAULT_CONFIG, PRESET_COLORS } from './constants';
-import { Settings, X, Maximize, Minimize, ZoomIn, ZoomOut, Shuffle, Download, Infinity as InfinityIcon, Clock, FileText, Image as ImageIcon, Pause, Play, Trash2 } from 'lucide-react';
+import { Settings, X, Maximize, Minimize, ZoomIn, ZoomOut, Shuffle, Download, Infinity as InfinityIcon, Clock, FileText, Image as ImageIcon, Pause, Play, Trash2, Sparkles, Sun, Moon } from 'lucide-react';
 
 // Custom Crossed Infinity Icon to match "Show Gears" style (EyeOff)
 const InfinityOff = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
@@ -563,12 +563,21 @@ const App: React.FC = () => {
     setViewTransform({ x: 0, y: 0, k });
   }, []);
 
+  const handleMobileRandom = () => {
+    const newConfig = generateRandomConfig(theme);
+    setConfig(newConfig);
+    setShouldClear(true);
+    setIsPlaying(true);
+    const k = calculateOptimalScale(newConfig, window.innerWidth, window.innerHeight);
+    setViewTransform({ x: 0, y: 0, k });
+  };
+
   // Theme-based classes
   const containerClass = theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-white text-slate-900';
   const mobileHeaderClass = theme === 'dark' ? 'bg-slate-900' : 'bg-white border-b border-slate-200';
   const mobileTextClass = theme === 'dark' 
     ? 'text-slate-600 group-hover:text-slate-500' 
-    : 'text-slate-600 group-hover:text-slate-800';
+    : 'text-slate-200 group-hover:text-slate-500';
 
   const logoBg = theme === 'dark' ? 'white' : 'black';
   const settingsBtnClass = theme === 'dark' ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100';
@@ -641,13 +650,32 @@ const App: React.FC = () => {
                     </div>
                 </div>
             </a>
-            <button 
-            onClick={() => setShowControls(true)} 
-            className={`p-2 rounded-lg transition-colors ${settingsBtnClass}`}
-            aria-label="Open settings"
-            >
-            <Settings size={20} />
-            </button>
+            
+            <div className="flex items-center gap-1">
+                <button 
+                onClick={handleMobileRandom} 
+                className={`p-2 rounded-lg transition-colors ${settingsBtnClass}`}
+                aria-label="Draw random"
+                >
+                <Sparkles size={20} />
+                </button>
+
+                <button 
+                onClick={toggleTheme} 
+                className={`p-2 rounded-lg transition-colors ${settingsBtnClass}`}
+                aria-label="Toggle theme"
+                >
+                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                </button>
+
+                <button 
+                onClick={() => setShowControls(true)} 
+                className={`p-2 rounded-lg transition-colors ${settingsBtnClass}`}
+                aria-label="Open settings"
+                >
+                <Settings size={20} />
+                </button>
+            </div>
         </div>
       )}
 
