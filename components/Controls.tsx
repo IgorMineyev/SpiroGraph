@@ -210,6 +210,7 @@ export const Controls: React.FC<ControlsProps> = ({
     onClear();
     if (!isPlaying) onTogglePlay();
     if (onAutoZoom) onAutoZoom(nextConfig);
+    if (onClose) onClose();
   };
 
   const bgMain = theme === 'dark' ? 'bg-slate-900 border-r border-white/5' : 'bg-white border-r border-slate-900/5';

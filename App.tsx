@@ -63,8 +63,11 @@ const PERSISTENT_STYLES = `
     /* Force black background in screensaver mode and prevent white bounce */
     html.screensaver-active, 
     html.screensaver-active body, 
-    html.screensaver-active #root {
+    html.screensaver-active #root,
+    html.screensaver-active :fullscreen,
+    html.screensaver-active ::backdrop {
         background-color: #000000 !important;
+        background: #000000 !important;
         overscroll-behavior: none !important;
         color-scheme: dark !important;
     }
@@ -135,8 +138,10 @@ const App: React.FC = () => {
   // Sync body and document class with the current theme and screensaver state to ensure black background on mobile
   useEffect(() => {
     const html = document.documentElement;
+    const body = document.body;
     if (isScreensaver) {
       html.classList.add('screensaver-active');
+      body.style.backgroundColor = '#000000';
       // Update theme-color meta tag for mobile browsers status bar
       let metaTheme = document.querySelector('meta[name="theme-color"]');
       if (!metaTheme) {
@@ -147,6 +152,7 @@ const App: React.FC = () => {
       metaTheme.setAttribute('content', '#000000');
     } else {
       html.classList.remove('screensaver-active');
+      body.style.backgroundColor = '';
       let metaTheme = document.querySelector('meta[name="theme-color"]');
       if (metaTheme) {
         metaTheme.setAttribute('content', theme === 'dark' ? '#020617' : '#ffffff');
@@ -181,6 +187,7 @@ const App: React.FC = () => {
     setShouldClear(true);
     setIsPlaying(true);
     setViewTransform({ x: 0, y: 0, k });
+    setShowControls(false);
   }, [theme]);
 
   // Screensaver Keyboard Interaction Logic
