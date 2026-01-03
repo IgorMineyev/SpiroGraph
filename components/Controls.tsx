@@ -21,7 +21,7 @@ import {
   Heart
 } from 'lucide-react';
 
-// Light/dark tiled backgrounds for the settings (Controls) panel
+// Tiled backgrounds for the settings (Controls) panel
 import lightSettingsBg from '../assets/bg.jpg';
 import darkSettingsBg from '../assets/bg-dark.png';
 
@@ -102,14 +102,14 @@ const SliderControl: React.FC<{
           onChange={handleInputChange}
           onBlur={handleBlur}
           className={`
-                w-20 bg-transparent text-right font-mono focus:outline-none border-b 
-                ${
-                  theme === 'dark'
-                    ? 'border-slate-700 focus:border-slate-500 text-slate-300'
-                    : 'border-slate-300 focus:border-slate-500 text-slate-900'
-                }
-                [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none
-            `}
+            w-20 bg-transparent text-right font-mono focus:outline-none border-b 
+            ${
+              theme === 'dark'
+                ? 'border-slate-700 focus:border-slate-500 text-slate-300'
+                : 'border-slate-300 focus:border-slate-500 text-slate-900'
+            }
+            [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none
+          `}
         />
       </div>
       <input
@@ -204,10 +204,16 @@ export const Controls: React.FC<ControlsProps> = ({
     const outerC = calculateEllipseCircumference(config.outerRadius, config.statorAspect);
     const targetInnerC = outerC * (n / d);
     const unitInnerC = calculateEllipseCircumference(1, config.rotorAspect);
-    let newInnerRadius = Math.max(10, Math.min(400, targetInnerC / unitInnerC));
+    const newInnerRadius = Math.max(10, Math.min(400, targetInnerC / unitInnerC));
     const newPenOffset = Math.floor(newInnerRadius * (0.4 + Math.random() * 0.8));
 
-    const nextConfig = { ...config, innerRadius: newInnerRadius, penOffset: newPenOffset, numerator: n, denominator: d };
+    const nextConfig = {
+      ...config,
+      innerRadius: newInnerRadius,
+      penOffset: newPenOffset,
+      numerator: n,
+      denominator: d
+    };
     setConfig(nextConfig);
     onClear();
     if (!isPlaying) onTogglePlay();
@@ -230,8 +236,9 @@ export const Controls: React.FC<ControlsProps> = ({
     const outerC = calculateEllipseCircumference(config.outerRadius, sAspect);
     const targetInnerC = outerC * (n / d);
     const unitInnerC = calculateEllipseCircumference(1, rAspect);
-    let newInnerRadius = Math.max(10, Math.min(400, targetInnerC / unitInnerC));
+    const newInnerRadius = Math.max(10, Math.min(400, targetInnerC / unitInnerC));
     const newPenOffset = Math.floor(newInnerRadius * (0.4 + Math.random() * 0.8));
+
     const availableColors = PRESET_COLORS.filter((c) => c !== (theme === 'dark' ? '#000000' : '#ffffff'));
     const randomColor = availableColors[Math.floor(Math.random() * availableColors.length)];
 
@@ -256,15 +263,33 @@ export const Controls: React.FC<ControlsProps> = ({
   const textPrimary = theme === 'dark' ? 'text-slate-300' : 'text-slate-900';
   const textSecondary = theme === 'dark' ? 'text-slate-400' : 'text-slate-600';
   const textMuted = theme === 'dark' ? 'text-slate-400' : 'text-slate-600';
-  const bgPanel = theme === 'dark' ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-100/40 border-slate-200/50';
+  const bgPanel =
+    theme === 'dark' ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-100/40 border-slate-200/50';
   const bgInput = theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-white/60 border-slate-300';
+
+  // This defines the normal/hover background + text palette used by the grey buttons (Screensaver, Pause/Start, etc.).
   const greyBtnClass =
     theme === 'dark'
       ? 'bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-700/80'
       : 'bg-slate-200/60 text-slate-600 hover:text-slate-800 hover:bg-slate-300/80';
-  const primaryBtnClass = 'bg-green-600 text-white border-green-500 hover:bg-green-700 shadow-lg shadow-green-500/20';
-  const logoBg = theme === 'dark' ? 'white' : 'black';
-  const logoText = theme === 'dark' ? 'text-slate-600 group-hover:text-slate-500' : 'text-slate-200 group-hover:text-slate-500';
+
+  const primaryBtnClass =
+    'bg-green-600 text-white border-green-500 hover:bg-green-700 shadow-lg shadow-green-500/20';
+
+  // Header/logo styling requested:
+  // - "SpiroGraph" text color is always #2e7d32 (all themes, all hover states)
+  // - The background behind "SpiroGraph" matches the grey buttons background (normal + hover) per theme
+  // - The "Igor Mineyev's" text matches the grey buttons text (normal + hover) per theme
+  // - Hovering either "Igor Mineyev's" or the "SpiroGraph" pill triggers the same hover styling (via group-hover).
+  const logoPillBgClass =
+    theme === 'dark'
+      ? 'bg-slate-800/60 group-hover:bg-slate-700/80'
+      : 'bg-slate-200/60 group-hover:bg-slate-300/80';
+
+  const logoNameTextClass =
+    theme === 'dark'
+      ? 'text-slate-400 group-hover:text-slate-200'
+      : 'text-slate-600 group-hover:text-slate-800';
 
   // Tiled background for the settings sidebar:
   // - light mode: bg.jpg
@@ -277,16 +302,33 @@ export const Controls: React.FC<ControlsProps> = ({
   };
 
   return (
-    <div className={`flex flex-col h-full w-full md:w-80 overflow-y-auto transition-colors duration-300 ${bgMain}`} style={containerStyle}>
+    <div
+      className={`flex flex-col h-full w-full md:w-80 overflow-y-auto transition-colors duration-300 ${bgMain}`}
+      style={containerStyle}
+    >
       <div className="p-4 pb-2 flex justify-between items-start shrink-0">
-        <a href="https://igormineyev.github.io/" target="_blank" rel="noopener noreferrer" className="flex flex-col group">
-          <span className={`text-[10px] font-bold mb-1 pl-1 transition-colors duration-300 ${logoText}`}>Igor Mineyev's</span>
+        <a
+          href="https://igormineyev.github.io/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex flex-col group"
+        >
+          <span
+            className={`text-[10px] font-bold mb-1 pl-1 transition-colors duration-300 ${logoNameTextClass}`}
+          >
+            Igor Mineyev&apos;s
+          </span>
+
           <div className="inline-block">
-            <div style={{ background: logoBg, padding: '4px 10px', borderRadius: '8px', display: 'inline-block', lineHeight: '1' }}>
-              <span style={{ color: '#22c55e', fontSize: '20px', fontWeight: 'bold' }}>SpiroGraph</span>
+            <div
+              className={`inline-block rounded-lg transition-colors duration-300 ${logoPillBgClass}`}
+              style={{ padding: '4px 10px', lineHeight: '1' }}
+            >
+              <span style={{ color: '#2e7d32', fontSize: '20px', fontWeight: 'bold' }}>SpiroGraph</span>
             </div>
           </div>
         </a>
+
         <div className="flex gap-2">
           <button
             onClick={onToggleFullscreen}
@@ -299,6 +341,7 @@ export const Controls: React.FC<ControlsProps> = ({
           >
             {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
           </button>
+
           <button
             onClick={onToggleTheme}
             className={`p-2 rounded-lg transition-colors ${
@@ -306,10 +349,11 @@ export const Controls: React.FC<ControlsProps> = ({
                 ? 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'
                 : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100'
             }`}
-            title={`Switch to theme`}
+            title="Switch theme"
           >
             {theme === 'dark' ? <Sun size={20} fill="currentColor" /> : <Moon size={20} fill="currentColor" />}
           </button>
+
           {onClose && (
             <button onClick={onClose} className="md:hidden text-slate-500 hover:text-white">
               <X size={24} />
@@ -328,6 +372,7 @@ export const Controls: React.FC<ControlsProps> = ({
             <Sparkles size={20} className="shrink-0" />
             <span>Draw a random spiro curve!</span>
           </button>
+
           <button
             onClick={onStartScreensaver}
             className={`w-full p-2 rounded-lg transition-colors flex items-center justify-center gap-3 text-xs font-medium ${greyBtnClass}`}
@@ -335,12 +380,20 @@ export const Controls: React.FC<ControlsProps> = ({
             <Monitor size={20} className="shrink-0" />
             <span>Screensaver</span>
           </button>
+
           <div className="grid grid-cols-2 gap-3">
-            <button onClick={onTogglePlay} className={`flex items-center justify-center gap-2 p-3 rounded-lg font-medium transition-all ${greyBtnClass}`}>
+            <button
+              onClick={onTogglePlay}
+              className={`flex items-center justify-center gap-2 p-3 rounded-lg font-medium transition-all ${greyBtnClass}`}
+            >
               {isPlaying ? <Pause size={18} /> : <Play size={18} />}
               {isPlaying ? 'Pause' : 'Start'}
             </button>
-            <button onClick={onClear} className={`flex items-center justify-center gap-2 p-3 rounded-lg transition-all ${greyBtnClass}`}>
+
+            <button
+              onClick={onClear}
+              className={`flex items-center justify-center gap-2 p-3 rounded-lg transition-all ${greyBtnClass}`}
+            >
               <Trash2 size={18} />
               Clear
             </button>
@@ -356,10 +409,13 @@ export const Controls: React.FC<ControlsProps> = ({
             >
               <Download size={20} />
               <div className="flex flex-col items-start">
-                <span className={`text-[10px] leading-tight ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>If you like this picture,</span>
+                <span className={`text-[10px] leading-tight ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+                  If you like this picture,
+                </span>
                 <span className="leading-tight">download it.</span>
               </div>
             </button>
+
             <button
               onClick={() => onDownload(true)}
               className={`col-span-1 flex items-center justify-center p-2 rounded-lg transition-all ${greyBtnClass}`}
@@ -368,6 +424,7 @@ export const Controls: React.FC<ControlsProps> = ({
               <FileText size={20} />
             </button>
           </div>
+
           <a
             href="https://igormineyev.github.io/#donate"
             target="_blank"
@@ -381,12 +438,21 @@ export const Controls: React.FC<ControlsProps> = ({
           </a>
         </div>
 
-        <SliderControl label="Speed" value={config.speed} min={0.1} max={20} step={0.1} onChange={(v) => updateConfig('speed', v)} theme={theme} />
+        <SliderControl
+          label="Speed"
+          value={config.speed}
+          min={0.1}
+          max={20}
+          step={0.1}
+          onChange={(v) => updateConfig('speed', v)}
+          theme={theme}
+        />
 
         <div className="space-y-1">
           <div className="mb-2">
             <div className="flex justify-between items-center mb-2">
               <label className={`text-xs block ${textSecondary}`}>Pen color</label>
+
               <div className="relative group flex items-center">
                 <input
                   type="color"
@@ -406,21 +472,44 @@ export const Controls: React.FC<ControlsProps> = ({
                 </div>
               </div>
             </div>
+
             <div className="grid grid-cols-7 gap-1">
               {PRESET_COLORS.map((color) => (
                 <button
                   key={color}
                   onClick={() => updateConfig('penColor', color)}
                   className={`w-full aspect-square rounded-md border-2 ${
-                    config.penColor === color ? (theme === 'dark' ? 'border-white' : 'border-slate-400') : 'border-transparent'
+                    config.penColor === color
+                      ? theme === 'dark'
+                        ? 'border-white'
+                        : 'border-slate-400'
+                      : 'border-transparent'
                   }`}
                   style={{ backgroundColor: color }}
                 />
               ))}
             </div>
           </div>
-          <SliderControl label="Thickness" value={config.lineWidth} min={0.5} max={15} step={0.1} onChange={(v) => updateConfig('lineWidth', v)} theme={theme} />
-          <SliderControl label="Opacity" value={config.opacity} min={0.1} max={1} step={0.1} onChange={(v) => updateConfig('opacity', v)} theme={theme} />
+
+          <SliderControl
+            label="Thickness"
+            value={config.lineWidth}
+            min={0.5}
+            max={15}
+            step={0.1}
+            onChange={(v) => updateConfig('lineWidth', v)}
+            theme={theme}
+          />
+
+          <SliderControl
+            label="Opacity"
+            value={config.opacity}
+            min={0.1}
+            max={1}
+            step={0.1}
+            onChange={(v) => updateConfig('opacity', v)}
+            theme={theme}
+          />
         </div>
 
         <div className="flex items-center justify-between py-2 mb-2">
@@ -428,7 +517,9 @@ export const Controls: React.FC<ControlsProps> = ({
           <button
             onClick={() => updateConfig('showGears', !config.showGears)}
             className={`p-2 rounded-lg transition-colors ${
-              theme === 'dark' ? 'bg-slate-800/60 text-slate-500 hover:text-slate-300' : 'bg-slate-200/60 text-slate-400 hover:text-slate-600'
+              theme === 'dark'
+                ? 'bg-slate-800/60 text-slate-500 hover:text-slate-300'
+                : 'bg-slate-200/60 text-slate-400 hover:text-slate-600'
             }`}
           >
             {config.showGears ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -439,6 +530,7 @@ export const Controls: React.FC<ControlsProps> = ({
           <div className={`rounded-lg p-3 border space-y-3 ${bgPanel}`}>
             <div className="flex items-center justify-center gap-3">
               <span className={`text-xs ${textSecondary}`}>Rotor/stator ratio =</span>
+
               <div className="flex flex-col items-center w-24">
                 <input
                   type="number"
@@ -448,7 +540,7 @@ export const Controls: React.FC<ControlsProps> = ({
                   onChange={(e) => setNumerator(parseInt(e.target.value) || 1)}
                   className={`w-full border rounded px-2 py-1 text-sm text-center focus:outline-none ${bgInput} ${textPrimary}`}
                 />
-                <div className={`w-full h-[2px] my-1 rounded-full ${theme === 'dark' ? 'bg-slate-700/50' : 'bg-slate-300/50'}`}></div>
+                <div className={`w-full h-[2px] my-1 rounded-full ${theme === 'dark' ? 'bg-slate-700/50' : 'bg-slate-300/50'}`} />
                 <input
                   type="number"
                   min="1"
@@ -459,12 +551,14 @@ export const Controls: React.FC<ControlsProps> = ({
                 />
               </div>
             </div>
+
             <button
               onClick={handleApplyRatio}
               className={`w-full text-xs font-medium p-2 rounded-lg transition-colors flex items-center justify-center gap-1 ${greyBtnClass}`}
             >
               Set rotor radius to fit ratio
             </button>
+
             <button
               onClick={handleRandomRatio}
               className={`w-full text-xs font-medium py-2 rounded border transition-colors flex items-center justify-center gap-1 ${greyBtnClass}`}
@@ -477,9 +571,30 @@ export const Controls: React.FC<ControlsProps> = ({
         </div>
 
         <div className="space-y-1 pt-2">
-          <SliderControl label="Stator radius" value={config.outerRadius} min={50} max={400} onChange={(v) => updateConfig('outerRadius', v)} theme={theme} />
-          <SliderControl label="Rotor radius" value={config.innerRadius} min={10} max={400} onChange={(v) => updateConfig('innerRadius', v)} theme={theme} />
-          <SliderControl label="Pen offset" value={config.penOffset} min={10} max={400} onChange={(v) => updateConfig('penOffset', v)} theme={theme} />
+          <SliderControl
+            label="Stator radius"
+            value={config.outerRadius}
+            min={50}
+            max={400}
+            onChange={(v) => updateConfig('outerRadius', v)}
+            theme={theme}
+          />
+          <SliderControl
+            label="Rotor radius"
+            value={config.innerRadius}
+            min={10}
+            max={400}
+            onChange={(v) => updateConfig('innerRadius', v)}
+            theme={theme}
+          />
+          <SliderControl
+            label="Pen offset"
+            value={config.penOffset}
+            min={10}
+            max={400}
+            onChange={(v) => updateConfig('penOffset', v)}
+            theme={theme}
+          />
         </div>
 
         <div className="space-y-1">
