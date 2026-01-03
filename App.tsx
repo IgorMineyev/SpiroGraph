@@ -378,6 +378,35 @@ const App: React.FC = () => {
     setTimeLeft(Math.ceil(duration / 1000));
   };
 
+  // Auto-screensaver trigger (10 minutes of inactivity)
+  useEffect(() => {
+    if (isScreensaver) return;
+
+    const IDLE_TIMEOUT = 10 * 60 * 1000; // 10 minutes
+    let timerId: number;
+
+    const goIdle = () => {
+        startScreensaver();
+    };
+
+    const resetTimer = () => {
+        window.clearTimeout(timerId);
+        timerId = window.setTimeout(goIdle, IDLE_TIMEOUT);
+    };
+
+    // Attach listeners for activity
+    const events = ['mousedown', 'mousemove', 'keydown', 'touchstart', 'wheel'];
+    events.forEach(event => window.addEventListener(event, resetTimer));
+
+    // Initialize
+    resetTimer();
+
+    return () => {
+        window.clearTimeout(timerId);
+        events.forEach(event => window.removeEventListener(event, resetTimer));
+    };
+  }, [isScreensaver, startScreensaver]);
+
   const triggerNextScreensaverImage = useCallback(() => {
     // Screensaver is always dark mode
     const newConfig = generateRandomConfig('dark');
