@@ -320,6 +320,10 @@ const App: React.FC = () => {
                 </div>
             </a>
             <div className="flex items-center gap-1">
+                {/* Download button */}
+                <button onClick={() => setDownloadState({ active: true, withStats: false })} className={`p-2 rounded-lg transition-colors ${headerActionBtnClass}`} title="Download pattern">
+                    <Download size={20} />
+                </button>
                 {/* Randomize button */}
                 <button onClick={handleRandomize} className={`p-2 rounded-lg transition-colors ${headerActionBtnClass}`} title="Randomize pattern">
                     <Sparkles size={20} />
