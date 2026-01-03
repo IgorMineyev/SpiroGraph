@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import { Controls } from './components/Controls';
 import { SpirographRenderer } from './components/SpirographRenderer';
@@ -61,9 +60,13 @@ const PERSISTENT_STYLES = `
         opacity: 1;
     }
 
-    /* Force black background in screensaver mode even for browser-specific chrome */
-    .screensaver-active, .screensaver-active body, .screensaver-active #root {
-        background-color: black !important;
+    /* Force black background in screensaver mode and prevent white bounce */
+    html.screensaver-active, 
+    html.screensaver-active body, 
+    html.screensaver-active #root {
+        background-color: #000000 !important;
+        overscroll-behavior: none !important;
+        color-scheme: dark !important;
     }
 `;
 
@@ -282,13 +285,15 @@ const App: React.FC = () => {
   const logoText = theme === 'dark' ? 'text-slate-600 group-hover:text-slate-500' : 'text-slate-200 group-hover:text-slate-500';
   const logoBg = theme === 'dark' ? 'white' : 'black';
   const settingsBtnClass = theme === 'dark' ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100';
-  // Style and color matching the buttons in the mobile header
   const headerActionBtnClass = theme === 'dark' ? 'text-slate-500 hover:text-slate-300 hover:bg-slate-800' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100';
 
   const overlayOpacity = isScreensaver ? (isIdle ? 'opacity-0' : 'opacity-100') : 'opacity-0 group-hover:opacity-100';
 
+  // Determine main container background color
+  const containerBg = isScreensaver ? 'bg-black' : (theme === 'dark' ? 'bg-slate-950' : 'bg-white');
+
   return (
-    <div className={`flex flex-col md:flex-row h-screen w-screen relative overflow-hidden transition-colors duration-300 ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-white text-slate-900'} ${isScreensaver ? 'cursor-none screensaver-active' : ''}`}>
+    <div className={`flex flex-col md:flex-row h-screen w-screen relative overflow-hidden transition-colors duration-300 ${containerBg} ${theme === 'dark' ? 'text-slate-100' : 'text-slate-900'} ${isScreensaver ? 'cursor-none' : ''}`}>
       <style>{PERSISTENT_STYLES}</style>
       
       {/* Mobile Header (Hidden in Screensaver) */}
