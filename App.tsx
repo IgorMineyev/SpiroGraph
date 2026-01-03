@@ -692,7 +692,7 @@ const App: React.FC = () => {
                 className={`p-2 rounded-lg transition-colors ${settingsBtnClass}`}
                 aria-label="Toggle theme"
                 >
-                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                {theme === 'dark' ? <Sun size={20} fill="currentColor" /> : <Moon size={20} fill="currentColor" />}
                 </button>
 
                 <button 
