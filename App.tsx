@@ -195,8 +195,9 @@ const App: React.FC = () => {
   // Screensaver Idle State
   const [isIdle, setIsIdle] = useState<boolean>(false);
   
-  // Ref to store previous theme
+  // Ref to store previous theme and fullscreen state
   const previousThemeRef = useRef<Theme>(theme);
+  const wasFullscreenBeforeScreensaverRef = useRef<boolean>(false);
   const nextSwitchTimeRef = useRef<number>(0);
   const isInfinityModeRef = useRef(isInfinityMode);
   
@@ -232,9 +233,12 @@ const App: React.FC = () => {
     // IMMEDIATE Restore cursor on all elements
     toggleGlobalCursor(false);
     
-    if (document.fullscreenElement) {
+    // Exit fullscreen ONLY if we weren't fullscreen before screensaver started
+    // If the user manually toggled fullscreen before walking away, keep it fullscreen.
+    if (!wasFullscreenBeforeScreensaverRef.current && document.fullscreenElement) {
         document.exitFullscreen().catch(() => {});
     }
+
     // Restore previous theme
     setTheme(previousThemeRef.current);
     
@@ -257,7 +261,8 @@ const App: React.FC = () => {
             toggleGlobalCursor(true);
         }
 
-        // If user exits fullscreen manually, exit screensaver
+        // If user exits fullscreen manually (pressed Esc), exit screensaver
+        // But only if it was the screensaver that (presumably) requested it or we are in screensaver mode
         if (!isFS && isScreensaver) {
             stopScreensaver();
         }
@@ -330,21 +335,29 @@ const App: React.FC = () => {
     (document.activeElement as HTMLElement)?.blur();
     document.getSelection()?.removeAllRanges();
     
-    // 3. State Updates
+    // 3. Capture current state
+    const isCurrentlyFullscreen = !!document.fullscreenElement;
+    wasFullscreenBeforeScreensaverRef.current = isCurrentlyFullscreen;
+
+    // 4. State Updates
     // Explicitly set isIdle to true before anything else to ensure controls start hidden
     setIsIdle(true);
     setIsScreensaver(true);
     
-    // 4. Fullscreen
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(() => {});
+    // 5. Fullscreen Attempt
+    // Note: If triggered by a timer (auto-screensaver), requestFullscreen will fail due to browser security policies.
+    // We catch the error so the app continues in "Windowed Screensaver" mode.
+    if (!isCurrentlyFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {
+            // Expected error on auto-trigger
+        });
     }
     
-    // 5. Theme and Config
+    // 6. Theme and Config
     previousThemeRef.current = theme;
     setTheme('dark');
     
-    // 6. Config Adaptation (Continue current drawing)
+    // 7. Config Adaptation (Continue current drawing)
     const width = window.innerWidth;
     const height = window.innerHeight;
     
@@ -586,7 +599,7 @@ const App: React.FC = () => {
       {/* Screensaver Overlay Exit Button (Only visible in screensaver when active) */}
       {isScreensaver && (
         <div 
-            className={`absolute top-0 right-0 p-6 z-[100] transition-opacity duration-300 ${!isIdle ? 'opacity-100' : 'opacity-0'} ${isScreensaver && isIdle ? 'pointer-events-none' : ''}`}
+            className={`absolute top-0 right-0 p-10 z-[100] transition-opacity duration-300 ${!isIdle ? 'opacity-100' : 'opacity-0'} ${isScreensaver && isIdle ? 'pointer-events-none' : ''} ${isScreensaver ? 'force-cursor-visible' : ''}`}
             onMouseDown={(e) => e.stopPropagation()}
             onTouchStart={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
