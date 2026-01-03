@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import { Controls } from './components/Controls';
 import { SpirographRenderer } from './components/SpirographRenderer';
@@ -58,6 +59,11 @@ const PERSISTENT_STYLES = `
     }
     input[type="number"].themed-spin:hover::-webkit-inner-spin-button {
         opacity: 1;
+    }
+
+    /* Force black background in screensaver mode even for browser-specific chrome */
+    .screensaver-active, .screensaver-active body, .screensaver-active #root {
+        background-color: black !important;
     }
 `;
 
@@ -125,18 +131,23 @@ const App: React.FC = () => {
 
   // Sync body and document class with the current theme and screensaver state to ensure black background on mobile
   useEffect(() => {
-    const body = document.body;
     const html = document.documentElement;
-    if (isScreensaver || theme === 'dark') {
-      body.classList.add('bg-slate-950');
-      body.classList.remove('bg-white');
-      html.classList.add('bg-slate-950');
-      html.classList.remove('bg-white');
+    if (isScreensaver) {
+      html.classList.add('screensaver-active');
+      // Update theme-color meta tag for mobile browsers status bar
+      let metaTheme = document.querySelector('meta[name="theme-color"]');
+      if (!metaTheme) {
+        metaTheme = document.createElement('meta');
+        metaTheme.setAttribute('name', 'theme-color');
+        document.head.appendChild(metaTheme);
+      }
+      metaTheme.setAttribute('content', '#000000');
     } else {
-      body.classList.add('bg-white');
-      body.classList.remove('bg-slate-950');
-      html.classList.add('bg-white');
-      html.classList.remove('bg-slate-950');
+      html.classList.remove('screensaver-active');
+      let metaTheme = document.querySelector('meta[name="theme-color"]');
+      if (metaTheme) {
+        metaTheme.setAttribute('content', theme === 'dark' ? '#020617' : '#ffffff');
+      }
     }
   }, [theme, isScreensaver]);
 
@@ -277,7 +288,7 @@ const App: React.FC = () => {
   const overlayOpacity = isScreensaver ? (isIdle ? 'opacity-0' : 'opacity-100') : 'opacity-0 group-hover:opacity-100';
 
   return (
-    <div className={`flex flex-col md:flex-row h-screen w-screen relative overflow-hidden transition-colors duration-300 ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-white text-slate-900'} ${isScreensaver ? 'cursor-none' : ''}`}>
+    <div className={`flex flex-col md:flex-row h-screen w-screen relative overflow-hidden transition-colors duration-300 ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-white text-slate-900'} ${isScreensaver ? 'cursor-none screensaver-active' : ''}`}>
       <style>{PERSISTENT_STYLES}</style>
       
       {/* Mobile Header (Hidden in Screensaver) */}
