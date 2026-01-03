@@ -275,8 +275,8 @@ export const Controls: React.FC<ControlsProps> = ({
 
   const primaryBtnClass =
   theme === 'dark'
-    ? 'bg-green-700 text-white border-green-500 hover:bg-green-600 shadow-lg shadow-green-500/20'
-    : 'bg-green-600 text-white border-green-500 hover:bg-green-700 shadow-lg shadow-green-500/20';
+    ? 'bg-green-700 text-white hover:bg-green-600 shadow-lg shadow-green-500/20'
+    : 'bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-500/20';
 
   // Header/logo styling requested:
   // - "SpiroGraph" text color is always #2e7d32 (all themes, all hover states)
@@ -368,7 +368,7 @@ export const Controls: React.FC<ControlsProps> = ({
         <div className="space-y-2">
           <button
             onClick={handleRandomRatioAndEccentricity}
-            className={`w-full p-2 rounded-lg border transition-colors flex items-center justify-center gap-3 text-xs font-medium ${primaryBtnClass}`}
+            className={`w-full p-2 rounded-lg transition-colors flex items-center justify-center gap-3 text-xs font-medium ${primaryBtnClass}`}
             title="Random everything"
           >
             <Sparkles size={20} className="shrink-0" />
