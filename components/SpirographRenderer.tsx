@@ -325,7 +325,7 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
         tCtx.restore();
 
         // Footer / Watermark Setup
-        const footerText = "Play at IgorMineyev.github.io/SpiroGraph/";
+        const footerText = "Play at https://IgorMineyev.github.io/SpiroGraph/";
         const footerFontSize = Math.max(12, width / 70);
         const footerPaddingBottom = footerFontSize * 0.8;
         
