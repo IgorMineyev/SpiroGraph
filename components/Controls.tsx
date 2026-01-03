@@ -273,16 +273,10 @@ export const Controls: React.FC<ControlsProps> = ({
       ? 'bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-700/80'
       : 'bg-slate-200/60 text-slate-600 hover:text-slate-800 hover:bg-slate-300/80';
 
-  const primaryTextClass =
-  theme === 'dark'
-    ? 'text-slate-400 hover:text-slate-200'
-    : 'text-slate-600 hover:text-slate-800';
-
   const primaryBtnClass =
   theme === 'dark'
-    ? `bg-[#256628] hover:bg-[#2e7d32] border-[#2e7d32] ${primaryTextClass} shadow-lg shadow-green-900/30`
-    : `bg-[#2e7d32] hover:bg-[#256628] border-[#2e7d32] ${primaryTextClass} shadow-lg shadow-green-500/20`;
-
+    ? 'bg-green-700 text-white border-green-500 hover:bg-green-600 shadow-lg shadow-green-500/20'
+    : 'bg-green-600 text-white border-green-500 hover:bg-green-700 shadow-lg shadow-green-500/20';
 
   // Header/logo styling requested:
   // - "SpiroGraph" text color is always #2e7d32 (all themes, all hover states)
