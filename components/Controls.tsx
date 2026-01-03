@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SpiroConfig, Theme } from '../types';
-import { PRESET_COLORS } from '../constants';
+import { PRESET_COLORS, BACKGROUND_TEXTURE } from '../constants';
 import { Play, Pause, Trash2, Download, Eye, EyeOff, X, Shuffle, Sparkles, Sun, Moon, Monitor, Maximize, Minimize, FileText, Palette, Heart } from 'lucide-react';
 
 interface ControlsProps {
@@ -20,7 +20,6 @@ interface ControlsProps {
 }
 
 const calculateEllipseCircumference = (radius: number, aspect: number): number => {
-  // Ramanujan's approximation
   const a = radius;
   const b = radius * aspect;
   if (aspect === 1) return 2 * Math.PI * radius;
@@ -213,19 +212,30 @@ export const Controls: React.FC<ControlsProps> = ({
     if (onClose) onClose();
   };
 
-  const bgMain = theme === 'dark' ? 'bg-slate-900 border-r border-white/5' : 'bg-white border-r border-slate-900/5';
+  const bgMain = theme === 'dark' ? 'border-r border-white/10' : 'border-r border-slate-900/10';
   const textPrimary = theme === 'dark' ? 'text-slate-300' : 'text-slate-900';
   const textSecondary = theme === 'dark' ? 'text-slate-400' : 'text-slate-600';
   const textMuted = theme === 'dark' ? 'text-slate-400' : 'text-slate-600';
-  const bgPanel = theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200';
-  const bgInput = theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-300';
-  const greyBtnClass = theme === 'dark' ? 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700' : 'bg-slate-200 text-slate-600 hover:text-slate-800 hover:bg-slate-300';
+  const bgPanel = theme === 'dark' ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-100/40 border-slate-200/50';
+  const bgInput = theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-white/60 border-slate-300';
+  const greyBtnClass = theme === 'dark' ? 'bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-700/80' : 'bg-slate-200/60 text-slate-600 hover:text-slate-800 hover:bg-slate-300/80';
   const primaryBtnClass = 'bg-green-600 text-white border-green-500 hover:bg-green-700 shadow-lg shadow-green-500/20';
   const logoBg = theme === 'dark' ? 'white' : 'black';
   const logoText = theme === 'dark' ? 'text-slate-600 group-hover:text-slate-500' : 'text-slate-200 group-hover:text-slate-500';
 
+  // TECHNICAL GRID: Tiled grid background for the sidebar to match main workspace
+  const containerStyle = {
+    backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff',
+    backgroundImage: `url("${BACKGROUND_TEXTURE}")`,
+    backgroundRepeat: 'repeat',
+    backgroundSize: '40px 40px',
+  };
+
   return (
-    <div className={`flex flex-col h-full w-full md:w-80 overflow-y-auto transition-colors duration-300 ${bgMain}`}>
+    <div 
+      className={`flex flex-col h-full w-full md:w-80 overflow-y-auto transition-colors duration-300 ${bgMain}`}
+      style={containerStyle}
+    >
       <div className="p-4 pb-2 flex justify-between items-start shrink-0">
             <a href="https://igormineyev.github.io/" target="_blank" rel="noopener noreferrer" className="flex flex-col group">
               <span className={`text-[10px] font-bold mb-1 pl-1 transition-colors duration-300 ${logoText}`}>Igor Mineyev's</span>
@@ -282,7 +292,7 @@ export const Controls: React.FC<ControlsProps> = ({
                 <label className={`text-xs block ${textSecondary}`}>Pen color</label>
                 <div className="relative group flex items-center">
                     <input type="color" value={config.penColor} onChange={(e) => updateConfig('penColor', e.target.value)} className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10" />
-                    <div className={`text-[10px] px-2 py-0.5 rounded border flex items-center gap-1 font-medium transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-400 group-hover:text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-600 group-hover:text-slate-900'}`}>
+                    <div className={`text-[10px] px-2 py-0.5 rounded border flex items-center gap-1 font-medium transition-colors ${theme === 'dark' ? 'bg-slate-800/60 border-slate-700/50 text-slate-400 group-hover:text-slate-200' : 'bg-slate-100/60 border-slate-200/50 text-slate-600 group-hover:text-slate-900'}`}>
                         <Palette size={10} /><span>Custom</span>
                     </div>
                 </div>
@@ -304,7 +314,7 @@ export const Controls: React.FC<ControlsProps> = ({
 
          <div className="flex items-center justify-between py-2 mb-2">
             <span className={`text-sm ${textMuted}`}>Show gears</span>
-            <button onClick={() => updateConfig('showGears', !config.showGears)} className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'bg-slate-800 text-slate-500 hover:text-slate-300' : 'bg-slate-200 text-slate-400 hover:text-slate-600'}`}>
+            <button onClick={() => updateConfig('showGears', !config.showGears)} className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'bg-slate-800/60 text-slate-500 hover:text-slate-300' : 'bg-slate-200/60 text-slate-400 hover:text-slate-600'}`}>
               {config.showGears ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
@@ -315,7 +325,7 @@ export const Controls: React.FC<ControlsProps> = ({
                <span className={`text-xs ${textSecondary}`}>Rotor/stator ratio =</span>
                <div className="flex flex-col items-center w-24">
                   <input type="number" min="1" max="1000" value={numerator} onChange={(e) => setNumerator(parseInt(e.target.value) || 1)} className={`w-full border rounded px-2 py-1 text-sm text-center focus:outline-none ${bgInput} ${textPrimary}`} />
-                  <div className={`w-full h-[2px] my-1 rounded-full ${theme === 'dark' ? 'bg-slate-700' : 'bg-slate-300'}`}></div>
+                  <div className={`w-full h-[2px] my-1 rounded-full ${theme === 'dark' ? 'bg-slate-700/50' : 'bg-slate-300/50'}`}></div>
                   <input type="number" min="1" max="1000" value={denominator} onChange={(e) => setDenominator(parseInt(e.target.value) || 1)} className={`w-full border rounded px-2 py-1 text-sm text-center focus:outline-none ${bgInput} ${textPrimary}`} />
                </div>
             </div>

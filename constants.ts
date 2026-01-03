@@ -1,5 +1,8 @@
 import { SpiroConfig } from './types';
 
+// A higher contrast 40x40 pixel technical grid (graph paper) for better visibility
+export const BACKGROUND_TEXTURE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M 40 0 L 0 0 0 40' fill='none' stroke='rgba(128,128,128,0.5)' stroke-width='1'/%3E%3C/svg%3E";
+
 export const DEFAULT_CONFIG: SpiroConfig = {
   outerRadius: 150,
   innerRadius: 52,
@@ -23,15 +26,15 @@ export const PRESET_COLORS = [
   '#84cc16', // Lime
   '#65a30d', // Olive
   '#16a34a', // Green
-  '#15803d', // Dark Green
+  '#2e7d32', // Dark Green
 
   // Row 2: Cool Greens, Blues & Purples
   '#10b981', // Emerald
   '#0d9488', // Teal
   '#06b6d4', // Cyan
-  '#3b82f6', // Blue (Distinct from Cyan)
+  '#3b82f6', // Blue
   '#6366f1', // Indigo
-  '#a855f7', // Purple (Replaces Navy/Black-ish)
+  '#a855f7', // Purple
   '#8b5cf6', // Violet
 
   // Row 3: Pinks, Neutrals
@@ -51,7 +54,7 @@ export const COLOR_NAMES: Record<string, string> = {
   '#84cc16': 'Lime',
   '#65a30d': 'Olive',
   '#16a34a': 'Green',
-  '#15803d': 'Dark Green',
+  '#2e7d32': 'Dark Green',
   '#10b981': 'Emerald',
   '#0d9488': 'Teal',
   '#06b6d4': 'Cyan',

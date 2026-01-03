@@ -11,6 +11,9 @@
     <style>
       body {
         font-family: 'Inter', sans-serif;
+        background-repeat: repeat !important;
+        background-attachment: fixed !important;
+        background-size: auto !important;
       }
       /* Custom scrollbar for control panel */
       ::-webkit-scrollbar {
@@ -29,8 +32,6 @@
       }
       
       /* Force hide cursor globally when this class is applied */
-      /* Include pseudo-classes to override any hover states */
-      /* Use a transparent image fallback for browsers that might resist 'none' during transitions */
       .app-no-cursor, 
       .app-no-cursor *, 
       .app-no-cursor *::before,
@@ -55,7 +56,7 @@
 </script>
 <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-white text-slate-900 overflow-hidden">
+  <body class="text-slate-900 overflow-hidden bg-transparent">
     <div id="root"></div>
     <!-- This script loads your React application -->
     <script type="module" src="./index.tsx"></script>
