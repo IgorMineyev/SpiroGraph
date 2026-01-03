@@ -162,6 +162,8 @@ const App: React.FC = () => {
   const [isScreensaver, setIsScreensaver] = useState<boolean>(false);
   const [isInfinityMode, setIsInfinityMode] = useState<boolean>(false);
   const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [screensaverDuration, setScreensaverDuration] = useState<number>(300000); // Default 5 minutes
+  const [durationInput, setDurationInput] = useState<string>("5");
 
   // View Transform State (Lifted from Renderer)
   const [viewTransform, setViewTransform] = useState({ x: 0, y: 0, k: 1 });
@@ -346,8 +348,8 @@ const App: React.FC = () => {
     // Ensure animation is playing
     setIsPlaying(true);
     
-    // Start timer for the *next* image (Fixed 5 minutes)
-    const duration = 300000; // 5 minutes
+    // Start timer for the *next* image (Using configurable duration)
+    const duration = screensaverDuration;
     nextSwitchTimeRef.current = Date.now() + duration;
     setTimeLeft(Math.ceil(duration / 1000));
   };
@@ -377,11 +379,11 @@ const App: React.FC = () => {
     setShouldClear(true);
     setIsPlaying(true);
     
-    // Set timer for next switch (Fixed 5 minutes)
-    const duration = 300000; // 5 minutes
+    // Set timer for next switch (Using configurable duration)
+    const duration = screensaverDuration; 
     nextSwitchTimeRef.current = Date.now() + duration;
     setTimeLeft(Math.ceil(duration / 1000));
-  }, []);
+  }, [screensaverDuration]);
 
   // Timer Interval Effect
   useEffect(() => {
@@ -466,9 +468,26 @@ const App: React.FC = () => {
     
     if (!newVal) {
         // Mode Disabled: Reset the timer to a full duration instead of immediate switch
-        const duration = 300000; // 5 minutes fixed
+        const duration = screensaverDuration;
         nextSwitchTimeRef.current = Date.now() + duration;
         setTimeLeft(Math.ceil(duration / 1000));
+    }
+  };
+
+  const handleDurationInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valStr = e.target.value;
+    setDurationInput(valStr);
+    
+    const val = parseFloat(valStr);
+    if (!isNaN(val) && val > 0) {
+        const newDuration = val * 60 * 1000;
+        setScreensaverDuration(newDuration);
+        
+        // Update active timer immediately if valid
+        if (isScreensaver && !isInfinityMode) {
+             nextSwitchTimeRef.current = Date.now() + newDuration;
+             setTimeLeft(Math.ceil(newDuration / 1000));
+        }
     }
   };
 
@@ -696,7 +715,20 @@ const App: React.FC = () => {
                     {!isInfinityMode && (
                         <div className={`flex items-center gap-2 px-3 py-2 rounded-lg font-mono text-xs shadow-lg transition-colors select-none bg-slate-900 text-slate-500 border border-slate-800/50`}>
                             <Clock size={16} />
-                            <span>{formatTime(timeLeft)}</span>
+                            <span className="w-12 text-center">{formatTime(timeLeft)}</span>
+                            <div className="w-px h-4 bg-slate-800 mx-1"></div>
+                            <div className="flex items-center gap-1">
+                                <span className="text-[10px] text-slate-600">every</span>
+                                <input 
+                                    type="number" 
+                                    min="0.1"
+                                    step="0.1"
+                                    value={durationInput}
+                                    onChange={handleDurationInputChange}
+                                    className="w-10 bg-transparent text-center border-b border-slate-700 text-slate-400 focus:outline-none focus:border-slate-500 hover:border-slate-600 transition-colors appearance-none"
+                                />
+                                <span className="text-[10px] text-slate-600">min</span>
+                            </div>
                         </div>
                     )}
                </div>

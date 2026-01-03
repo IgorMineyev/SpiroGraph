@@ -324,6 +324,11 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
 
         tCtx.restore();
 
+        // Footer / Watermark Setup
+        const footerText = "Play at IgorMineyev.github.io/SpiroGraph/";
+        const footerFontSize = Math.max(12, width / 70);
+        const footerPaddingBottom = footerFontSize * 0.8;
+        
         // 4. Draw Stats Overlay
         if (withStats) {
             let ratioText = "";
@@ -383,9 +388,11 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
             const boxHeight = (lines.length * lineHeight) + (padding * 2);
             
             // Position: Bottom Left with margin
+            // Adjust margin to clear the footer
             const margin = 20;
+            const footerSpace = footerFontSize + footerPaddingBottom + 10;
             const boxX = margin;
-            const boxY = height - boxHeight - margin;
+            const boxY = height - boxHeight - margin - footerSpace;
 
             // Only draw background if NOT in dark mode
             if (downloadTheme !== 'dark') {
@@ -394,11 +401,6 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
                 tCtx.fillRect(boxX, boxY, boxWidth, boxHeight);
             }
             
-            // Frame is removed per request
-            // tCtx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
-            // tCtx.lineWidth = 1;
-            // tCtx.strokeRect(boxX, boxY, boxWidth, boxHeight);
-
             // Text Color: White in dark mode, Black otherwise
             tCtx.fillStyle = downloadTheme === 'dark' ? '#ffffff' : '#000000';
             tCtx.textAlign = 'left';
@@ -409,6 +411,23 @@ export const SpirographRenderer: React.FC<SpirographRendererProps> = ({
             });
         }
         
+        // 5. Draw Footer (Watermark)
+        tCtx.save();
+        tCtx.font = `500 ${footerFontSize}px Inter, sans-serif`;
+        tCtx.textAlign = 'center';
+        tCtx.textBaseline = 'bottom';
+        
+        if (downloadTheme === 'dark') {
+             // Dark mode: "darker grey" (slate-600 on slate-950)
+             tCtx.fillStyle = '#475569'; 
+        } else {
+             // Light mode: "lighter grey" (slate-400 on white)
+             tCtx.fillStyle = '#94a3b8'; 
+        }
+        
+        tCtx.fillText(footerText, width / 2, height - footerPaddingBottom);
+        tCtx.restore();
+
         const timestamp = Date.now();
         const link = document.createElement('a');
         const filename = withStats 
