@@ -46,6 +46,7 @@ const toggleGlobalCursor = (hidden: boolean) => {
 const PERSISTENT_STYLES = `
     .force-cursor-visible, .force-cursor-visible * { cursor: default !important; }
     .force-cursor-visible button, .force-cursor-visible a, .force-cursor-visible [role="button"],
+    .force-cursor-visible [role="slider"],
     .force-cursor-visible input { cursor: pointer !important; }
     
     /* Style for timer duration arrows to match the UI color scheme */
@@ -122,6 +123,18 @@ const App: React.FC = () => {
     setViewTransform(prev => ({ ...prev, k }));
   }, []);
 
+  // Sync body class with the current theme and screensaver state to avoid white background on mobile
+  useEffect(() => {
+    const body = document.body;
+    if (isScreensaver || theme === 'dark') {
+      body.classList.add('bg-slate-950');
+      body.classList.remove('bg-white');
+    } else {
+      body.classList.add('bg-white');
+      body.classList.remove('bg-slate-950');
+    }
+  }, [theme, isScreensaver]);
+
   const stopScreensaver = useCallback(() => {
     setIsScreensaver(false);
     setIsInfinityMode(false);
@@ -129,6 +142,7 @@ const App: React.FC = () => {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     setTheme(previousThemeRef.current);
     setConfig(prev => ({ ...prev, showGears: true }));
+    setShowControls(true); // Return to standard view with settings window visible
   }, []); 
 
   const triggerNextScreensaverImage = useCallback(() => {
@@ -155,6 +169,13 @@ const App: React.FC = () => {
     if (!isScreensaver) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Explicitly catch Escape to ensure it triggers stopScreensaver even if event handling is tricky
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        stopScreensaver();
+        return;
+      }
+
       if (e.key === ' ' || e.code === 'Space') {
         if (!(e.target instanceof HTMLInputElement)) {
           e.preventDefault();
@@ -171,6 +192,19 @@ const App: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [isScreensaver, triggerNextScreensaverImage, stopScreensaver]);
+
+  // Ensure screensaver mode stops if user exits fullscreen (e.g. via Escape key or browser chrome)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isCurrentlyFullscreen = !!document.fullscreenElement;
+      setIsFullscreen(isCurrentlyFullscreen);
+      if (!isCurrentlyFullscreen && isScreensaver) {
+        stopScreensaver();
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, [isScreensaver, stopScreensaver]);
 
   useLayoutEffect(() => {
     if (!isScreensaver) { setIsIdle(false); toggleGlobalCursor(false); return; }
